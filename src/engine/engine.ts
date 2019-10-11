@@ -26,9 +26,9 @@ export class AstraEngine {
   private playerManager: AstraPlayerManager;
 
   private wrapSocket(func: (...args: any[]) => any) {
-    return async (socket: socketIO.Socket, ...socketArgs: any[]) => {
+    return async (socket: socketIO.Socket, player: Player, payload: any = {}, ...socketArgs: any[]) => {
       try {
-        await func(...socketArgs);
+        await func(socket, player, payload, ...socketArgs);
       } catch (err) {
         if (typeof err === "string") this.socketManager.error(socket.id, err);
         else {
@@ -76,26 +76,40 @@ export class AstraEngine {
     );
     socketManager.on(
       "lobby.join",
-      this.wrapSocket((player, payload) => {
+      this.wrapSocket((socket, player, payload) => {
         const { id } = payload;
         let lobby = lobbyManager.join(player, id);
-        socketManager.joinToLobby(player, id);
-        socketManager.command(lobby.id, "lobby.joined", lobby);
+        socketManager.joinToLobby(player, lobby.id);
+        socketManager.command(lobby.id, "lobby.joined", { lobbyId: lobby.id });
       })
     );
     socketManager.on(
       "lobby.leave",
-      this.wrapSocket((player, payload) => {
+      this.wrapSocket((socket, player, payload) => {
         const { id } = payload;
         const { disposed, lobby } = lobbyManager.leave(player, id);
 
         socketManager.command(lobby.id, "lobby.leaved", { playerId: player.id });
         socketManager.leaveFromLobby(player, lobby.id);
-        if (disposed) socketManager.command(lobby.id, "lobby.disposed");
+        // if (disposed) socketManager.command(lobby.id, "lobby.disposed");
         // ЯОСТАНОВИЛСЯ ТУТ СУКИ ПОННЯЛИ?
         // socketManager.broadcastCommand(lobby, "lobby.leaved", lobby);
       })
     );
+
+    socketManager.on(
+      "player.command",
+      this.wrapSocket((socket, player, socketPayload) => {
+        const { action, payload } = socketPayload;
+        if (!action) throw "invalid action";
+
+        lobbyManager.command(player, action, payload || {});
+      })
+    );
+
+    lobbyManager.on("lobby.command", (player: Player, action: string, payload: any) => {
+      socketManager.command(player.socket.id, action, payload);
+    });
   }
 }
 

@@ -89,10 +89,12 @@ export class AstraSocketManager extends EventEmitter {
     this.command(id, "error", { error: message, data } as ISocketErrorPayload);
   }
 
+  // Джойнится конкретно к каналу сокета
   public joinToLobby(player: Player, lobbyId: string) {
     player.socket.join(lobbyId);
   }
 
+  // Ливает конкретно с канала сокета
   public leaveFromLobby(player: Player, lobbyId: string) {
     player.socket.leave(lobbyId);
   }

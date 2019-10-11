@@ -1,16 +1,23 @@
 import { generateId, mapValueChecker } from "./utils";
 import { Player } from "./player";
+import { EventEmitter } from "events";
+
+export type RespondCommand = (player: Player, action: string, payload?: any) => void;
 
 export abstract class Lobby<T = any> {
+  protected readonly send: RespondCommand;
   private readonly _id: string;
+  readonly maxPlayers: number;
+
   get id(): string {
     return this._id;
   }
 
   players: Player[] = [];
-  readonly maxPlayers: number;
-  constructor(id: string) {
+
+  constructor(id: string, send: RespondCommand) {
     this._id = id;
+    this.send = send;
   }
 
   get isFull(): boolean {
@@ -23,17 +30,24 @@ export abstract class Lobby<T = any> {
   onJoined(player: Player) {}
   onLeaved(player: Player) {}
   onDispose() {}
+  onCommand(player: Player, action: string, payload: any) {}
 }
 
 export class TestLobby extends Lobby {
   maxPlayers = 10;
+
+  onCommand(player: Player, action: string) {
+    if (action === "game.ping") {
+      this.send(player, "game.pong");
+    }
+  }
 }
 
-export class AstraLobbyManager {
+export class AstraLobbyManager extends EventEmitter {
   private lobbies: Map<string, Lobby> = new Map();
-  private lobbiesQueue: string[];
+  private lobbiesQueue: string[] = [];
   // id игрока -> id лобби
-  private connections: Map<string, string> = new Map();
+  private connections: Map<string, Lobby> = new Map();
 
   // public getLobby(id: string, required?: boolean) {
   //   const lobby = this.lobbies.get(id);
@@ -49,7 +63,7 @@ export class AstraLobbyManager {
     exclude: `lobby with id <${id}> not exists`,
     include: `lobby with id <${id}> already exists`
   }));
-  public getConnection = mapValueChecker<string>(this.connections, id => ({
+  public getConnection = mapValueChecker<Lobby>(this.connections, id => ({
     exclude: `player with id <${id}> not connected to lobby`,
     include: `player with id <${id}> already connected to lobby`
   }));
@@ -59,12 +73,20 @@ export class AstraLobbyManager {
     if (id !== undefined) {
       lobby = this.getLobby(id, true);
     } else {
-      let lobbyId = this.lobbiesQueue[0];
-      let lobby = this.getLobby(lobbyId, true);
+      if (this.lobbiesQueue.length === 0) this.create(TestLobby);
+      // if (this.lobbiesQueue.length === 0) {
+      // }
+
+      lobby = this.getLobby(this.lobbiesQueue[0], true);
 
       if (lobby.isFull) throw "this is the bug.. wtf";
     }
     return this.joinPlayer(player, lobby);
+  }
+
+  public command(player: Player, action: string, payload: any) {
+    const lobby = this.getConnection(player.id, true);
+    lobby.onCommand(player, action, payload);
   }
 
   private joinPlayer(player: Player, lobby: Lobby) {
@@ -77,6 +99,8 @@ export class AstraLobbyManager {
       if (id !== -1) this.lobbiesQueue.splice(id, 1);
     }
 
+    this.connections.set(player.id, lobby);
+
     lobby.onJoined(player);
 
     return lobby;
@@ -87,8 +111,7 @@ export class AstraLobbyManager {
     if (id !== undefined) {
       lobby = this.getLobby(id, true, l => !l.players.includes(player) && `player not connected to lobby with id <${l.id}>`);
     } else {
-      let lobbyId = this.getConnection(player.id, true);
-      lobby = this.getLobby(lobbyId);
+      lobby = this.getConnection(player.id, true);
     }
     return { lobby, disposed: this.leavePlayer(player, lobby) };
   }
@@ -106,9 +129,13 @@ export class AstraLobbyManager {
     return true;
   }
 
+  private respondCommand = (player: Player, action: string, payload?: any) => {
+    this.emit("lobby.command", player, action, payload || {});
+  };
+
   // Метод, создающий лобби
-  public create<T extends Lobby>(LobbyType: new (id: string) => T) {
-    const lobby = new LobbyType(generateId());
+  public create<T extends Lobby>(LobbyType: new (id: string, send: RespondCommand) => T) {
+    const lobby = new LobbyType(generateId(), this.respondCommand);
     this.lobbies.set(lobby.id, lobby);
     this.lobbiesQueue.push(lobby.id);
     return lobby;

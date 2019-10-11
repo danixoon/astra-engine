@@ -11,8 +11,8 @@ export const mapValueChecker: <T>(
   const value = map.get(id);
   const ex = exceptionCallback(id);
   if (has !== undefined) {
-    if (has && value === undefined) throw ex.include;
-    if (!has && value !== undefined) throw ex.exclude;
+    if (has && value === undefined) throw ex.exclude;
+    if (!has && value !== undefined) throw ex.include;
 
     if (value && predicate) {
       let p = predicate(value);
