@@ -66,7 +66,11 @@ describe("init test", () => {
     io.emit("command", { action: "lobby.leave" });
   });
 
-  it("stop server", done => {
+  it("disconnect all", () => {
+    clients.forEach(c => c.disconnect());
+  });
+
+  afterAll(done => {
     setTimeout(() => done(), 4000);
   });
 });

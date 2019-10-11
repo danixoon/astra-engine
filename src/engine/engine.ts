@@ -1,24 +1,8 @@
 import * as socketIO from "socket.io";
 import { EventEmitter } from "events";
-import { Player, PlayerData } from "./player";
+import { Player, PlayerData, AstraPlayerManager } from "./player";
 import { AstraSocketManager, ISocketError, ISocketCommand, ISocketErrorPayload } from "./socket";
 import { AstraLobbyManager, Lobby } from "./lobby";
-
-class AstraPlayerManager {
-  players: Map<string, Player> = new Map();
-
-  create(socket: socketIO.Socket, data: PlayerData) {
-    const id = data.username;
-    if (this.players.has(id)) throw "player already exists";
-    const player: Player = new Player(id, socket, data);
-
-    return player;
-  }
-
-  remove(id: string) {
-    this.players.delete(id);
-  }
-}
 
 export class AstraEngine {
   private socketManager: AstraSocketManager;
@@ -42,6 +26,57 @@ export class AstraEngine {
     };
   }
 
+  private onSocketConnected(socket: socketIO.Socket, username: string) {
+    const { playerManager, socketManager } = this;
+
+    const player = playerManager.create(socket, { username });
+
+    socketManager.onPlayerConnected(player);
+    socketManager.command("player.connected", player.socket.id);
+  }
+
+  private onPlayerDisconnected(socket: socketIO.Socket, player: Player) {
+    const { playerManager } = this;
+    playerManager.remove(player.id);
+
+    // Когда отключаемся - также и выходим из лобби
+    // ВОЗМОЖНО СЮДА ВПИХНУТЬ TRY-CATCH, чтобы мы точно ливнули | Да, костыль
+    try {
+      this.onLobbyLeave(socket, player, {});
+    } catch (e) {}
+  }
+
+  private onLobbyJoin(socket: socketIO.Socket, player: Player, payload: any) {
+    const { playerManager, socketManager, lobbyManager } = this;
+
+    const { id } = payload;
+    let lobby = lobbyManager.join(player, id);
+    socketManager.joinToLobby(player, lobby.id);
+    socketManager.command(lobby.id, "lobby.joined", { lobbyId: lobby.id });
+  }
+
+  private onLobbyLeave(socket: socketIO.Socket, player: Player, payload: any) {
+    const { playerManager, socketManager, lobbyManager } = this;
+    const { id } = payload;
+    const { disposed, lobby } = lobbyManager.leave(player, id);
+
+    socketManager.command(lobby.id, "lobby.leaved", { playerId: player.id });
+    socketManager.leaveFromLobby(player, lobby.id);
+  }
+
+  private onPlayerCommand(socket: socketIO.Socket, player: Player, socketPayload: any) {
+    const { playerManager, socketManager, lobbyManager } = this;
+    const { action, payload } = socketPayload;
+    if (!action) throw "invalid action";
+
+    lobbyManager.command(player, action, payload || {});
+  }
+
+  private onLobbyCommand(player: Player, action: string, payload: any) {
+    const { playerManager, socketManager, lobbyManager } = this;
+    socketManager.command(player.socket.id, action, payload);
+  }
+
   // private onLobbyDisposed(players: Player[]) {}
 
   constructor(io: socketIO.Server) {
@@ -53,63 +88,19 @@ export class AstraEngine {
     this.lobbyManager = lobbyManager;
     this.playerManager = playerManager;
 
-    // socketManager.on("owo", this.handleSocket((socket, any) => {}));
-    socketManager.on(
-      "socket.connected",
-      this.wrapSocket((socket, username) => {
-        const player = playerManager.create(socket, { username });
+    // Когда сокет коннектится, но ещё не прошёл аутентификацию
+    socketManager.on("socket.connected", this.wrapSocket((socket, username) => this.onSocketConnected(socket, username)));
+    // Когда сокет подключился и уже имеет аккаунт игрока
+    socketManager.on("player.disconnected", this.wrapSocket((socket, player) => this.onPlayerDisconnected(socket, player)));
+    // Когда игрок коннектится в лобби
+    socketManager.on("lobby.join", this.wrapSocket((socket, player, payload) => this.onLobbyJoin(socket, player, payload)));
+    // Когда игрок ливает из лобби
+    socketManager.on("lobby.leave", this.wrapSocket((socket, player, payload) => this.onLobbyLeave(socket, player, payload)));
+    // Когда команда идёт игрок -> лобби
+    socketManager.on("player.command", this.wrapSocket((socket, player, socketPayload) => this.onPlayerCommand(socket, player, socketPayload)));
 
-        socketManager.onPlayerConnected(player);
-        socketManager.command("player.connected", player.socket.id);
-
-        // socketManager.emit("player.connected");
-        // socketManager.command(createCommand("player.connected"));
-
-        // socketManager.p
-      })
-    );
-    socketManager.on(
-      "socket.disconnected",
-      this.wrapSocket((socket, username) => {
-        playerManager.remove(username);
-      })
-    );
-    socketManager.on(
-      "lobby.join",
-      this.wrapSocket((socket, player, payload) => {
-        const { id } = payload;
-        let lobby = lobbyManager.join(player, id);
-        socketManager.joinToLobby(player, lobby.id);
-        socketManager.command(lobby.id, "lobby.joined", { lobbyId: lobby.id });
-      })
-    );
-    socketManager.on(
-      "lobby.leave",
-      this.wrapSocket((socket, player, payload) => {
-        const { id } = payload;
-        const { disposed, lobby } = lobbyManager.leave(player, id);
-
-        socketManager.command(lobby.id, "lobby.leaved", { playerId: player.id });
-        socketManager.leaveFromLobby(player, lobby.id);
-        // if (disposed) socketManager.command(lobby.id, "lobby.disposed");
-        // ЯОСТАНОВИЛСЯ ТУТ СУКИ ПОННЯЛИ?
-        // socketManager.broadcastCommand(lobby, "lobby.leaved", lobby);
-      })
-    );
-
-    socketManager.on(
-      "player.command",
-      this.wrapSocket((socket, player, socketPayload) => {
-        const { action, payload } = socketPayload;
-        if (!action) throw "invalid action";
-
-        lobbyManager.command(player, action, payload || {});
-      })
-    );
-
-    lobbyManager.on("lobby.command", (player: Player, action: string, payload: any) => {
-      socketManager.command(player.socket.id, action, payload);
-    });
+    // Когда команда идёт лобби -> игрок
+    lobbyManager.on("lobby.command", (player: Player, action: string, payload: any) => this.onLobbyCommand(player, action, payload));
   }
 }
 

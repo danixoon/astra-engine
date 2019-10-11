@@ -15,3 +15,21 @@ export class Player {
     this.socket = socket;
   }
 }
+
+export class AstraPlayerManager {
+  players: Map<string, Player> = new Map();
+
+  create(socket: socketIO.Socket, data: PlayerData) {
+    const id = data.username;
+    if (this.players.has(id)) throw "player already exists";
+    const player: Player = new Player(id, socket, data);
+
+    this.players.set(id, player);
+
+    return player;
+  }
+
+  remove(id: string) {
+    this.players.delete(id);
+  }
+}
