@@ -26,14 +26,14 @@ export class AstraEngine {
   private playerManager: AstraPlayerManager;
 
   private wrapSocket(func: (...args: any[]) => any) {
-    return async (...socketArgs: any[]) => {
+    return async (socket: socketIO.Socket, ...socketArgs: any[]) => {
       try {
         await func(...socketArgs);
       } catch (err) {
-        if (typeof err === "string") this.socketManager.error(err);
+        if (typeof err === "string") this.socketManager.error(socket.id, err);
         else {
           let e = err as ISocketErrorPayload;
-          if (!e || !e.error) this.socketManager.error("internal error");
+          if (!e || !e.error) this.socketManager.error(socket.id, "internal error");
           else this.socketManager.error(e.error, e.data);
         }
 
@@ -41,6 +41,8 @@ export class AstraEngine {
       }
     };
   }
+
+  // private onLobbyDisposed(players: Player[]) {}
 
   constructor(io: socketIO.Server) {
     const socketManager = new AstraSocketManager(io),
@@ -58,6 +60,7 @@ export class AstraEngine {
         const player = playerManager.create(socket, { username });
 
         socketManager.onPlayerConnected(player);
+        socketManager.command("player.connected", player.socket.id);
 
         // socketManager.emit("player.connected");
         // socketManager.command(createCommand("player.connected"));
@@ -75,21 +78,28 @@ export class AstraEngine {
       "lobby.join",
       this.wrapSocket((player, payload) => {
         const { id } = payload;
-        let lobby: Lobby;
-        if (id) {
-          lobbyManager.join(player, id);
-          lobby = lobbyManager.get(id, true);
-        } else {
-          lobbyManager.search(player);
-          // lobbyManager.
-          // lobbyManager.
-        }
+        let lobby = lobbyManager.join(player, id);
+        socketManager.joinToLobby(player, id);
+        socketManager.command(lobby.id, "lobby.joined", lobby);
+      })
+    );
+    socketManager.on(
+      "lobby.leave",
+      this.wrapSocket((player, payload) => {
+        const { id } = payload;
+        const { disposed, lobby } = lobbyManager.leave(player, id);
+
+        socketManager.command(lobby.id, "lobby.leaved", { playerId: player.id });
+        socketManager.leaveFromLobby(player, lobby.id);
+        if (disposed) socketManager.command(lobby.id, "lobby.disposed");
+        // ЯОСТАНОВИЛСЯ ТУТ СУКИ ПОННЯЛИ?
+        // socketManager.broadcastCommand(lobby, "lobby.leaved", lobby);
       })
     );
   }
 }
 
-// AstraEngine - отвечает за иницизиацию всех подсистем
+// AstraEngine - отвечает за иницизиацию всех подсистем и управление ими
 // AstraSocketManager - отвечает за связь сокетов socket.io и игрового движка
 // AstraLobbyManager - отваечает за управление лобби
 // AstraPlayerManager - отвечает за управление игроками

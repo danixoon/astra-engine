@@ -1,6 +1,7 @@
 import * as socketIO from "socket.io";
 import { EventEmitter } from "events";
 import { Player } from "./player";
+import { Lobby } from "./lobby";
 
 export interface ISocketCommand {
   action: string;
@@ -59,7 +60,7 @@ export class AstraSocketManager extends EventEmitter {
       } catch (err) {
         // При ошибки в соединении - кидаем ошибку
         // this.command(err);
-        this.error(typeof err === "string" ? err : err.error || "authentication error");
+        this.error(socket.id, typeof err === "string" ? err : err.error || "authentication error");
         this.onSocketAction("socket.disconnected", socket, username);
         socket.disconnect();
       }
@@ -75,19 +76,31 @@ export class AstraSocketManager extends EventEmitter {
     return comparerResult;
   }
 
-  public command(command: ISocketCommand) {
-    this.io.emit("command", command);
+  // public broadcastCommand(id: string, action: string, payload?: any) {
+  //   this.io.to(id).emit("command", createCommand(action, payload));
+  // }
+
+  public command(id: string, action: string, payload?: any) {
+    this.io.to(id).emit("command", createCommand(action, payload));
   }
 
-  public error(message: string, data?: any) {
-    const command = createCommand("error", { message, data }) as ISocketError;
-    this.command(command);
+  public error(id: string, message: string, data?: any) {
+    // const command = createCommand(;
+    this.command(id, "error", { error: message, data } as ISocketErrorPayload);
+  }
+
+  public joinToLobby(player: Player, lobbyId: string) {
+    player.socket.join(lobbyId);
+  }
+
+  public leaveFromLobby(player: Player, lobbyId: string) {
+    player.socket.leave(lobbyId);
   }
 
   public onPlayerConnected(player: Player) {
     const { socket } = player;
     socket.on("command", (command: ISocketCommand) => {
-      if (!command.action) return this.error("invalid action"); //this.command(createError("invalid action"));
+      if (!command.action) return this.error(socket.id, "invalid action"); //this.command(createError("invalid action"));
       if (command.action.startsWith("lobby.")) return this.onPlayerAction(command.action, player, command.payload);
       //return this.emit(command.action, username, command.payload); //return this.emit(command.action, username, command.payload);
       else {
@@ -98,8 +111,6 @@ export class AstraSocketManager extends EventEmitter {
     socket.on("disconnect", () => {
       this.onPlayerAction("player.disconnected", player);
     });
-
-    this.command(createCommand("player.connected", player));
   }
 
   private onSocketAction(action: string, socket: socketIO.Socket, ...args: any[]) {
@@ -107,7 +118,7 @@ export class AstraSocketManager extends EventEmitter {
   }
 
   private onPlayerAction(action: string, player: Player, ...args: any[]) {
-    this.emit(action, player, ...args);
+    this.emit(action, player.socket, player, ...args);
   }
 
   // private async onConnection(socket: socketIO.Socket) {}
