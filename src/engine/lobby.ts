@@ -3,8 +3,9 @@ import { Player } from "./player";
 import { EventEmitter } from "events";
 import { StatePartial, SyncState } from "./state";
 
+export type StateChangeMapper<T> = (p: StatePartial<T>, s: T) => any;
 export type RespondCommand = (player: Player, action: string, payload?: any) => void;
-export type StateChangeCommand<T> = (arg: T, action: string, changes: StatePartial, target?: Player[]) => void;
+export type StateChangeCommand<T> = (arg: T, action: string, changes: StatePartial<T>, target?: Player[]) => void;
 export type LobbyConstructor<T = any> = new (id: string, send: RespondCommand, lobbyState: StateChangeCommand<Lobby>, playerState: StateChangeCommand<Player>) => T;
 
 export abstract class Lobby<T = any, K = any> {
@@ -17,8 +18,8 @@ export abstract class Lobby<T = any, K = any> {
 
   readonly maxPlayers: number;
 
-  abstract readonly createLobbyState: () => T;
-  abstract readonly createPlayerState: () => K;
+  abstract readonly createLobbyState: () => { state: T; mapper?: StateChangeMapper<T> };
+  abstract readonly createPlayerState: () => { state: K; mapper?: StateChangeMapper<K> };
 
   getLobbyState() {
     return this._lobbyState;
@@ -84,23 +85,27 @@ export abstract class Lobby<T = any, K = any> {
     if (!this.initialized) this.init();
 
     let state = this._playerState.get(player.id);
+    let mapper: StateChangeMapper<any>;
     if (!state) {
-      state = new SyncState(this.createPlayerState(), "player.state");
+      let pState = this.createPlayerState();
+      mapper = pState.mapper || (s => s);
+      state = new SyncState(pState.state, "player.state");
       this._playerState.set(player.id, state);
     }
 
     state.on("state.change", (action: string, changes: StatePartial) => {
-      this.playerStateChange(player, action, changes);
+      this.playerStateChange(player, action, mapper(changes, state.data));
     });
 
-    state
-      .modify()
-      .state(state.data)
-      .send();
-    this._lobbyState
-      .modify()
-      .state(this._lobbyState.data)
-      .send();
+    // НЕНУЖНЫ КОНТРОЛЬ РАЗРАБАМ
+    // state
+    //   .modify()
+    //   .public(state.data)
+    //   .apply();
+    // this._lobbyState
+    //   .modify()
+    //   .public(this._lobbyState.data)
+    //   .apply();
   }
   private playerLeaved(player: Player) {
     const state = this._playerState.get(player.id);
@@ -116,6 +121,7 @@ export abstract class Lobby<T = any, K = any> {
     this._lobbyState.disable();
   }
 
+  protected onInit() {}
   protected onJoined(player: Player) {}
   protected onLeaved(player: Player) {}
   protected onCommand(player: Player, action: string, payload: any) {}
@@ -125,11 +131,16 @@ export abstract class Lobby<T = any, K = any> {
     if (this.initialized) throw "lobby already initialized";
 
     this._initialized = true;
-    this._lobbyState = new SyncState(this.createLobbyState(), "lobby.state");
+    const lState = this.createLobbyState();
+    const mapper = lState.mapper || (s => s);
+
+    this._lobbyState = new SyncState(lState.state, "lobby.state");
 
     this._lobbyState.on("state.change", (action: string, changes: StatePartial, target: Player[]) => {
-      this.lobbyStateChange(this, action, changes, target);
+      this.lobbyStateChange(this, action, mapper(changes, this._lobbyState.data), target);
     });
+
+    this.onInit();
   }
 }
 
@@ -221,6 +232,7 @@ export class AstraLobbyManager extends EventEmitter {
     lobby.players = lobby.players.filter(p => p.id !== player.id);
 
     // lobby.onLeaved(player);
+    // НЕ КОСТЫЛЬ (?) НЕ ПЕРЕЕЗЖАЕТ
     lobby.event("lobby.leaved", player);
 
     if (!lobby.isEmpty) return false;

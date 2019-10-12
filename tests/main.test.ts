@@ -22,6 +22,17 @@ const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
   });
 };
 
+const subscribeClients = (...usernames: string[]) => {
+  const clients = createClient((io, u) => {
+    io.on("command", data => {
+      if (data.action === "error") console.log(`action <${data.action}> to <${u}>\nmessage: ${data.payload.error}`);
+      else console.log(`action <${data.action}> to <${u}> | payload:\n`, data.payload);
+    });
+    io.on("connect", () => console.log(`<${u}> connection!`));
+  }, ...usernames);
+  return clients;
+};
+
 jest.setTimeout(1000);
 
 start();
@@ -29,15 +40,8 @@ start();
 describe("init test", () => {
   let clients: SocketIOClient.Socket[] = [];
   let io;
-  beforeAll(done => {
-    clients = createClient((io, u) => {
-      io.on("command", data => {
-        if (data.action === "error") console.log(`action <${data.action}> to <${u}>\nmessage: ${data.payload.error}`);
-        else console.log(`action <${data.action}> to <${u}> | payload:\n`, data.payload);
-      });
-      io.on("connect", () => console.log(`<${u}> connection!`));
-    }, "owo");
-    done();
+  beforeAll(() => {
+    clients = subscribeClients("owo");
   });
 
   it("join lobby", async done => {
@@ -65,6 +69,15 @@ describe("init test", () => {
 
     io.emit("command", { action: "lobby.leave" });
   });
+
+  // it("multiplayer lobbies", async done => {
+  //   clients = subscribeClients("vova", "petya", "keke");
+  //   Promise.all(clients.map(c => awaitCommand(c, "lobby.joined"))).then(lobbies => {
+  //     console.log(lobbies);
+  //     done();
+  //   });
+  //   clients.map(c => c.emit("command", { action: "lobby.join" }));
+  // });
 
   it("disconnect all", () => {
     clients.forEach(c => c.disconnect());
