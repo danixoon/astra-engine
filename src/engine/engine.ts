@@ -79,7 +79,7 @@ export class AstraEngine {
     socketManager.command(player.socket.id, action, payload);
   }
 
-  private onLobbyBroadcas(lobby: Lobby, action: string, payload: any) {
+  private onLobbyBroadcast(lobby: Lobby, action: string, payload: any) {
     const { playerManager, socketManager, lobbyManager } = this;
     socketManager.command(lobby.id, action, payload); //command(player.socket.id, action, payload);
   }
@@ -109,7 +109,7 @@ export class AstraEngine {
     // Когда команда идёт лобби -> игрок
     lobbyManager.on("lobby.command", (player: Player, action: string, payload: any) => this.onLobbyCommand(player, action, payload));
     // Когда команда идёт лобби -> игроки
-    lobbyManager.on("lobby.broadcast", (lobby: Lobby, action: string, payload: any) => this.onLobbyBroadcas(lobby, action, payload));
+    lobbyManager.on("lobby.broadcast", (lobby: Lobby, action: string, payload: any) => this.onLobbyBroadcast(lobby, action, payload));
   }
 }
 
