@@ -24,8 +24,8 @@ export abstract class Lobby<T = any, K = any> {
     return this._lobbyState;
   }
 
-  getPlayerState(playerId: string) {
-    return this._playerState.get(playerId);
+  getPlayerState(player: Player) {
+    return this._playerState.get(player.id);
   }
 
   private _lobbyState: SyncState<T>;
@@ -63,15 +63,18 @@ export abstract class Lobby<T = any, K = any> {
     switch (event) {
       case "lobby.joined":
         this.playerJoined(player);
+        this.onJoined(player);
         break;
       case "lobby.leave":
         this.playerLeaved(player);
+        this.onLeaved(player);
         break;
       case "lobby.command":
         this.onCommand(player, action, payload);
         break;
       case "lobby.dispose":
         this.lobbyDispose();
+        this.onDisposed();
         break;
     }
   }
@@ -82,7 +85,7 @@ export abstract class Lobby<T = any, K = any> {
 
     let state = this._playerState.get(player.id);
     if (!state) {
-      state = new SyncState(this.createPlayerState());
+      state = new SyncState(this.createPlayerState(), "player.state");
       this._playerState.set(player.id, state);
     }
 
@@ -90,8 +93,14 @@ export abstract class Lobby<T = any, K = any> {
       this.playerStateChange(player, action, changes);
     });
 
-    state.send("player.state", state.data);
-    this._lobbyState.send("lobby.state", this._lobbyState.data, player);
+    state
+      .modify()
+      .state(state.data)
+      .send();
+    this._lobbyState
+      .modify()
+      .state(this._lobbyState.data)
+      .send();
   }
   private playerLeaved(player: Player) {
     const state = this._playerState.get(player.id);
@@ -110,13 +119,13 @@ export abstract class Lobby<T = any, K = any> {
   protected onJoined(player: Player) {}
   protected onLeaved(player: Player) {}
   protected onCommand(player: Player, action: string, payload: any) {}
-  protected onDispose() {}
+  protected onDisposed() {}
 
   private init() {
     if (this.initialized) throw "lobby already initialized";
 
     this._initialized = true;
-    this._lobbyState = new SyncState(this.createLobbyState());
+    this._lobbyState = new SyncState(this.createLobbyState(), "lobby.state");
 
     this._lobbyState.on("state.change", (action: string, changes: StatePartial, target: Player[]) => {
       this.lobbyStateChange(this, action, changes, target);
@@ -190,7 +199,8 @@ export class AstraLobbyManager extends EventEmitter {
     this.connections.set(player.id, lobby);
 
     //lobby.onJoined(player);
-    lobby.event("lobby.joined", player);
+    // КОСТЫЛЬ УБРАТЬ ЕСЛИ ПОЧИНЮ
+    // lobby.event("lobby.joined", player);
 
     return lobby;
   }

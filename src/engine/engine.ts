@@ -53,6 +53,8 @@ export class AstraEngine {
     let lobby = lobbyManager.join(player, id);
     socketManager.joinToLobby(player, lobby.id);
     socketManager.command(lobby.id, "lobby.joined", { lobbyId: lobby.id });
+    // НЕБОЛЬШОЙ КОСТЫЛЬ С ПОДПИСКОЙ НА СОКЕТЫ
+    lobby.event("lobby.joined", player);
   }
 
   private onLobbyLeave(socket: socketIO.Socket, player: Player, payload: any) {

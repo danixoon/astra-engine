@@ -7,7 +7,13 @@ export type StatePartial<T = any> = {
 
 export class SyncState<T = any> {
   private emitter: EventEmitter = new EventEmitter();
+  private defaultLabel: string = "state.change";
   data: T;
+
+  constructor(defaultState: T, changeLabel: string) {
+    this.data = defaultState;
+    this.defaultLabel = changeLabel;
+  }
 
   on(event: string, listener: (...args: any[]) => void) {
     this.emitter.on(event, listener);
@@ -21,13 +27,36 @@ export class SyncState<T = any> {
     this.emitter.removeAllListeners(event);
   }
 
-  constructor(defaultState: T) {
-    this.data = defaultState;
-  }
+  modify(label: string = this.defaultLabel) {
+    const Modify = class {
+      private payloadData: any = {};
+      private targets: Player[] = [];
+      private stateData: StatePartial<T> = {};
 
-  send(label: string, changes: StatePartial<T>, ...target: Player[]) {
-    this.data = { ...this.data, ...changes };
+      state(stateData: StatePartial<T>) {
+        this.stateData = { ...this.stateData, ...stateData };
+        return this;
+      }
 
-    this.emitter.emit("state.change", label, changes, target);
+      payload(data: any) {
+        this.payloadData = { ...data, ...this.payloadData };
+        return this;
+      }
+
+      target(...players: Player[]) {
+        this.targets = players;
+        return this;
+      }
+
+      send() {
+        send(this.stateData, this.payloadData, this.targets);
+      }
+    };
+    const send = (state: StatePartial<T>, payload: any, target: Player[]) => {
+      this.data = { ...this.data, ...state };
+      this.emitter.emit("state.change", label, { ...payload, ...state }, target);
+    };
+
+    return new Modify();
   }
 }
