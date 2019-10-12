@@ -22,7 +22,7 @@ const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
   });
 };
 
-jest.setTimeout(30000);
+jest.setTimeout(1000);
 
 start();
 

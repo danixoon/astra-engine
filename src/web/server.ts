@@ -2,6 +2,7 @@ import * as express from "express";
 import * as path from "path";
 import * as socketIO from "socket.io";
 import { AstraEngine } from "../engine/engine";
+import { TestLobby } from "../game/game";
 
 export function start() {
   const app = express();
@@ -20,7 +21,8 @@ export function start() {
     console.log(`Server listening at ${port} port`);
   });
   const io = socketIO.listen(server);
-  const engine = new AstraEngine(io);
+  
+  const engine = new AstraEngine(io, TestLobby);
 
   // initSocket(io, players);
 }

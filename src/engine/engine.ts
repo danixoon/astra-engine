@@ -2,7 +2,7 @@ import * as socketIO from "socket.io";
 import { EventEmitter } from "events";
 import { Player, PlayerData, AstraPlayerManager } from "./player";
 import { AstraSocketManager, ISocketError, ISocketCommand, ISocketErrorPayload } from "./socket";
-import { AstraLobbyManager, Lobby } from "./lobby";
+import { AstraLobbyManager, Lobby, LobbyConstructor } from "./lobby";
 
 export class AstraEngine {
   private socketManager: AstraSocketManager;
@@ -77,11 +77,16 @@ export class AstraEngine {
     socketManager.command(player.socket.id, action, payload);
   }
 
+  private onLobbyBroadcas(lobby: Lobby, action: string, payload: any) {
+    const { playerManager, socketManager, lobbyManager } = this;
+    socketManager.command(lobby.id, action, payload); //command(player.socket.id, action, payload);
+  }
+
   // private onLobbyDisposed(players: Player[]) {}
 
-  constructor(io: socketIO.Server) {
+  constructor(io: socketIO.Server, defaultLobbyType: LobbyConstructor) {
     const socketManager = new AstraSocketManager(io),
-      lobbyManager = new AstraLobbyManager(),
+      lobbyManager = new AstraLobbyManager(defaultLobbyType),
       playerManager = new AstraPlayerManager();
 
     this.socketManager = socketManager;
@@ -101,6 +106,8 @@ export class AstraEngine {
 
     // Когда команда идёт лобби -> игрок
     lobbyManager.on("lobby.command", (player: Player, action: string, payload: any) => this.onLobbyCommand(player, action, payload));
+    // Когда команда идёт лобби -> игроки
+    lobbyManager.on("lobby.broadcast", (lobby: Lobby, action: string, payload: any) => this.onLobbyBroadcas(lobby, action, payload));
   }
 }
 
