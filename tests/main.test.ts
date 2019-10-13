@@ -1,7 +1,17 @@
 import * as socketIO from "socket.io-client";
 import * as socketIOServer from "socket.io";
-import { AstraEngine } from "../src/engine/engine";
-import { start } from "../src/web/server";
+import { AstraEngine } from "../lib/engine";
+import * as express from "express";
+import * as path from "path";
+import { TestLobby } from "./game/game";
+
+export function start() {
+  const app = express();
+  const port = process.env.PORT || 5000;
+  const server = app.listen(port, () => `server listening at ${port} port`);
+  const io = socketIOServer.listen(server);
+  const engine = new AstraEngine(io, TestLobby);
+}
 
 const createClient = (cb: (io: SocketIOClient.Socket, username: string) => void, ...usernames: string[]) => {
   return usernames.map(u => {
@@ -41,6 +51,7 @@ describe("init test", () => {
   let clients: SocketIOClient.Socket[] = [];
   let io;
   beforeAll(() => {
+    start();
     clients = subscribeClients("owo");
   });
 

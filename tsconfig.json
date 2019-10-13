@@ -2,10 +2,10 @@
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",
-    "outDir": "build",
-    "experimentalDecorators": true
-    // "sourceMap": true
+    "outDir": "./build",
+    "declaration": true,
+    "strict": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["lib/**/*.ts"],
   "exclude": ["node_modules", ".vscode"]
 }

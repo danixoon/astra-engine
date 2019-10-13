@@ -7,7 +7,7 @@ export const generateId = () => {
 export const mapValueChecker: <T>(
   map: Map<any, T>,
   exceptionCallback: (id: string) => { include: string; exclude: string }
-) => (id: string, required?: boolean, predicate?: (v: T) => string) => T = <T>(map, exceptionCallback) => (id, has, predicate) => {
+) => (id: string, required?: boolean, predicate?: (v: T) => string | null) => T = <T>(map: any, exceptionCallback: any) => (id, has, predicate) => {
   const value = map.get(id);
   const ex = exceptionCallback(id);
   if (has !== undefined) {

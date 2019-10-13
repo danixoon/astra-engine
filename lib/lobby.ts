@@ -16,7 +16,7 @@ export abstract class Lobby<T = any, K = any> {
 
   private readonly _id: string;
 
-  readonly maxPlayers: number;
+  abstract readonly maxPlayers: number;
 
   abstract readonly createLobbyState: () => { state: T; mapper?: StateChangeMapper<T> };
   abstract readonly createPlayerState: () => { state: K; mapper?: StateChangeMapper<K> };
@@ -29,7 +29,7 @@ export abstract class Lobby<T = any, K = any> {
     return this._playerState.get(player.id);
   }
 
-  private _lobbyState: SyncState<T>;
+  private _lobbyState: SyncState<T> = new SyncState<any>({}, "lobby.state") as SyncState<T>;
   private _playerState: Map<string, SyncState<K>> = new Map();
 
   private _initialized = false;
@@ -86,7 +86,7 @@ export abstract class Lobby<T = any, K = any> {
 
     let state = this._playerState.get(player.id);
     let mapper: StateChangeMapper<any>;
-    if (!state) {
+    if (state === undefined) {
       let pState = this.createPlayerState();
       mapper = pState.mapper || (s => s);
       state = new SyncState(pState.state, "player.state");
@@ -94,6 +94,7 @@ export abstract class Lobby<T = any, K = any> {
     }
 
     state.on("state.change", (action: string, changes: StatePartial) => {
+      if (state === undefined) throw "state is not created";
       this.playerStateChange(player, action, mapper(changes, state.data));
     });
 
@@ -219,7 +220,7 @@ export class AstraLobbyManager extends EventEmitter {
   public leave(player: Player, id?: string) {
     let lobby: Lobby;
     if (id !== undefined) {
-      lobby = this.getLobby(id, true, l => !l.players.includes(player) && `player not connected to lobby with id <${l.id}>`);
+      lobby = this.getLobby(id, true, l => (!l.players.includes(player) ? `player not connected to lobby with id <${l.id}>` : null));
     } else {
       lobby = this.getConnection(player.id, true);
     }
@@ -251,7 +252,7 @@ export class AstraLobbyManager extends EventEmitter {
 
   // Метод, создающий лобби
   public create<T extends Lobby>(LobbyType: new (id: string, send: RespondCommand, lobbyState: StateChangeCommand<Lobby>, playerState: StateChangeCommand<Player>) => T) {
-    const lobbyStateChange = (lobby: Lobby, action: string, changes: StatePartial, target: Player[]) => {
+    const lobbyStateChange = (lobby: Lobby, action: string, changes: StatePartial, target?: Player[]) => {
       if (!target || target.length === 0) this.broadcastCommand(lobby, action, changes);
       else target.forEach(p => this.respondCommand(p, action, changes));
     };

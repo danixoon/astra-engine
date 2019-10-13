@@ -29,50 +29,52 @@ export class SyncState<T = any> {
 
   modify(label: string = this.defaultLabel) {
     const stateObject = this;
+
+    let payloadData: any = {};
+    // Игроки, которым рассылается данное изменение состояния
+    let targets: Player[] = [];
+    // То, что изменилось в состоянии и подлежит отправке игрокам
+    let publicState: StatePartial<T> = {};
+    // То, что изменилось в состоянии и не подлежит отправке игрокам
+    let privateState: StatePartial<T> = {};
+
     const Modify = class {
       // Дополнительные данные, передающиеся после изменения стейта
-      private payloadData: any = {};
-      // Игроки, которым рассылается данное изменение состояния
-      private targets: Player[] = [];
-      // То, что изменилось в состоянии и подлежит отправке игрокам
-      private publicState: StatePartial<T> = {};
-      // То, что изменилось в состоянии и не подлежит отправке игрокам
-      private privateState: StatePartial<T> = {};
 
       // Метод, изменяющий состояние, которое в последствии посылается
       public(stateData: StatePartial<T>) {
-        this.publicState = { ...this.publicState, ...stateData };
+        publicState = { ...publicState, ...stateData };
         return this;
       }
 
       // Метод, превращающий изменённое состояние, отправляемое игрокам,
       // на основе возвращаемого значения callback-функции в аргументе
       map(cb: (v: StatePartial<T>, state: T) => any) {
-        this.publicState = { ...this.publicState, ...cb(this.publicState, stateObject.data) };
+        publicState = { ...publicState, ...cb(publicState, stateObject.data) };
         return this;
       }
 
       // Метод, изменяющий состояние, которое не подлежит отправке
       private(cb: (v: StatePartial<T>, state: T) => any) {
-        this.privateState = { ...this.privateState, ...cb(this.publicState, stateObject.data) }; // { ...this.silentStateData, ...stateData };
+        privateState = { ...privateState, ...cb(publicState, stateObject.data) }; // { ...this.silentStateData, ...stateData };
         return this;
       }
 
       // Метод, прикрепляющий доп. данные к отправке игроку, не влияющие на состояние
       payload(data: any) {
-        this.payloadData = { ...data, ...this.payloadData };
+        payloadData = { ...data, ...payloadData };
         return this;
       }
 
       // Метод, уточняющий, каким игрокам отправить данные (действует только для лобби)
       target(...players: Player[]) {
-        this.targets = players;
+        targets = players;
         return this;
       }
 
       // Метод, отправляющий данные и обновляюший состояние
       apply() {
-        apply(this.publicState, this.privateState, this.payloadData, this.targets);
+        apply(publicState, privateState, payloadData, targets);
       }
     };
     const apply = (publicState: StatePartial<T>, privateState: StatePartial<T>, payload: any, target: Player[]) => {

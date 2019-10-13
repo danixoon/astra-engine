@@ -1,7 +1,7 @@
-import { Lobby } from "../engine/lobby";
-import { Player } from "../engine/player";
 import * as _ from "lodash";
-import { StatePartial } from "../engine/state";
+import { Lobby } from "../../lib/lobby";
+import { Player } from "../../lib/player";
+import { StatePartial } from "../../lib/state";
 
 export interface ITestLobbyState {
   time: number;
@@ -32,7 +32,7 @@ export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
       field: { width: 5, height: 5 }
     }
   });
-  
+
   createPlayerState = () => ({
     state: {
       score: 0,

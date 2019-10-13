@@ -2,11 +2,13 @@ import * as socketIO from "socket.io";
 
 export class PlayerData {
   username: string;
+  constructor(username: string) {
+    this.username = username;
+  }
 }
 
 export class Player {
   data: PlayerData;
-
   socket: socketIO.Socket;
   readonly id: string;
   constructor(id: string, socket: socketIO.Socket, data: PlayerData) {

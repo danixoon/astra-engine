@@ -1,7 +1,6 @@
 import * as socketIO from "socket.io";
-import { EventEmitter } from "events";
-import { Player, PlayerData, AstraPlayerManager } from "./player";
-import { AstraSocketManager, ISocketError, ISocketCommand, ISocketErrorPayload } from "./socket";
+import { Player, AstraPlayerManager } from "./player";
+import { AstraSocketManager, ISocketErrorPayload } from "./socket";
 import { AstraLobbyManager, Lobby, LobbyConstructor } from "./lobby";
 
 export class AstraEngine {
