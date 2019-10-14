@@ -254,9 +254,9 @@ export class AstraLobbyManager extends EventEmitter {
     this.emit("lobby.command", player, action, payload || {});
   };
 
-  private broadcastCommand(lobby: Lobby, action: string, payload?: any) {
+  private broadcastCommand = (lobby: Lobby, action: string, payload?: any) => {
     this.emit("lobby.broadcast", lobby, action, payload);
-  }
+  };
 
   // Метод, создающий лобби
   public create<T extends Lobby>(
