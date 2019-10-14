@@ -24,7 +24,7 @@ interface IGameCell {
 export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
   maxPlayers = 2;
 
-  field: IGameCell[];
+  field: IGameCell[] = [];
 
   createLobbyState = () => ({
     state: {
@@ -39,7 +39,7 @@ export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
       field: [2]
     },
     mapper: (s: StatePartial<ITestPlayerState>, v: ITestPlayerState) => ({
-      field: s.field.map(id => this.field[id])
+      field: s.field ? s.field.map(id => this.field[id]) : []
     })
   });
 

@@ -22,3 +22,16 @@ export const mapValueChecker: <T>(
 
   return value as T;
 };
+
+export const fromXYToIndex = (x: number, y: number, width: number) => {
+  return y * width + x;
+};
+
+export const fromIndexToXY = (index: number, width: number, height: number) => {
+  return { x: Math.floor(index / width), y: index % height };
+};
+
+export const getTime = () => {
+  const date = new Date();
+  return date.toLocaleTimeString();
+};

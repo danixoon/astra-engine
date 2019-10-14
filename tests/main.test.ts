@@ -23,7 +23,7 @@ const createClient = (cb: (io: SocketIOClient.Socket, username: string) => void,
 
 const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
   return new Promise((res, rej) => {
-    const bind = c => {
+    const bind = (c: any) => {
       if (c.action !== action) return;
       socket.removeListener("command", bind);
       res(c);
@@ -34,7 +34,7 @@ const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
 
 const subscribeClients = (...usernames: string[]) => {
   const clients = createClient((io, u) => {
-    io.on("command", data => {
+    io.on("command", (data: any) => {
       if (data.action === "error") console.log(`action <${data.action}> to <${u}>\nmessage: ${data.payload.error}`);
       else console.log(`action <${data.action}> to <${u}> | payload:\n`, data.payload);
     });
@@ -49,9 +49,8 @@ start();
 
 describe("init test", () => {
   let clients: SocketIOClient.Socket[] = [];
-  let io;
+  let io: SocketIOClient.Socket;
   beforeAll(() => {
-    start();
     clients = subscribeClients("owo");
   });
 

@@ -29,7 +29,7 @@ export abstract class Lobby<T = any, K = any> {
     return this._playerState.get(player.id);
   }
 
-  private _lobbyState: SyncState<T> = new SyncState<any>({}, "lobby.state") as SyncState<T>;
+  private _lobbyState: SyncState<T> = new SyncState<any>({}, "lobby.state");
   private _playerState: Map<string, SyncState<K>> = new Map();
 
   private _initialized = false;
@@ -86,7 +86,7 @@ export abstract class Lobby<T = any, K = any> {
 
     let state = this._playerState.get(player.id);
     let mapper: StateChangeMapper<any>;
-    if (state === undefined) {
+    if (!state) {
       let pState = this.createPlayerState();
       mapper = pState.mapper || (s => s);
       state = new SyncState(pState.state, "player.state");
@@ -94,8 +94,8 @@ export abstract class Lobby<T = any, K = any> {
     }
 
     state.on("state.change", (action: string, changes: StatePartial) => {
-      if (state === undefined) throw "state is not created";
-      this.playerStateChange(player, action, mapper(changes, state.data));
+      if (!state) throw "state is not initialized";
+      this.playerStateChange(player, action, { ...changes, ...mapper(changes, state.data) });
     });
 
     // НЕНУЖНЫ КОНТРОЛЬ РАЗРАБАМ
@@ -138,7 +138,7 @@ export abstract class Lobby<T = any, K = any> {
     this._lobbyState = new SyncState(lState.state, "lobby.state");
 
     this._lobbyState.on("state.change", (action: string, changes: StatePartial, target: Player[]) => {
-      this.lobbyStateChange(this, action, mapper(changes, this._lobbyState.data), target);
+      this.lobbyStateChange(this, action, { ...changes, ...mapper(changes, this._lobbyState.data) }, target);
     });
 
     this.onInit();

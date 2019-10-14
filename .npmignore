@@ -1,1 +1,6 @@
 lib/
+tsconfig.json
+tests
+jest.config.js
+.vscode
+yarn.lock

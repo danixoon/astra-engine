@@ -1,7 +1,10 @@
 import * as socketIO from "socket.io";
+import chalk from "chalk";
+
 import { EventEmitter } from "events";
 import { Player } from "./player";
 import { Lobby } from "./lobby";
+import { getTime } from "./utils";
 
 export interface ISocketCommand {
   action: string;
@@ -60,8 +63,8 @@ export class AstraSocketManager extends EventEmitter {
       } catch (err) {
         // При ошибки в соединении - кидаем ошибку
         // this.command(err);
-        this.error(socket.id, typeof err === "string" ? err : err.error || "authentication error");
-        this.onSocketAction("socket.disconnected", socket, username);
+        // this.error(socket.id, typeof err === "string" ? err : err.error || "authentication error");
+        this.onSocketAction("socket.disconnected", socket, { reason: "authentication error" });
         socket.disconnect();
       }
       // this.onConnection(socket);
@@ -80,13 +83,15 @@ export class AstraSocketManager extends EventEmitter {
   //   this.io.to(id).emit("command", createCommand(action, payload));
   // }
 
-  public command(id: string, action: string, payload?: any) {
+  public command(id: string, action: string, username?: string | null, payload?: any) {
     this.io.to(id).emit("command", createCommand(action, payload));
+    console.log(`${chalk.blue(`[${getTime()}] [command sending]`)} ${chalk.green(action)} to ${chalk.yellow(username || id)}`);
   }
 
-  public error(id: string, message: string, data?: any) {
+  public error(id: string, username: string, message: string, data?: any) {
     // const command = createCommand(;
-    this.command(id, "error", { error: message, data } as ISocketErrorPayload);
+    this.command(id, "error", null, { error: message, data } as ISocketErrorPayload);
+    console.log(`${chalk.red(`[${getTime()}] [error]`)} ${chalk.green(message)} to ${chalk.yellow(username)}`);
   }
 
   // Джойнится конкретно к каналу сокета
@@ -102,7 +107,10 @@ export class AstraSocketManager extends EventEmitter {
   public onPlayerConnected(player: Player) {
     const { socket } = player;
     socket.on("command", (command: ISocketCommand) => {
-      if (!command.action) return this.error(socket.id, "invalid action"); //this.command(createError("invalid action"));
+      if (!command.action) return this.error(socket.id, player.data.username, "invalid action"); //this.command(createError("invalid action"));
+
+      console.log(`${chalk.cyan(`[${getTime()}] [command recieve]`)} ${chalk.green(command.action)} from ${chalk.yellow(player.data.username)}`);
+
       if (command.action.startsWith("lobby.")) return this.onPlayerAction(command.action, player, command.payload);
       //return this.emit(command.action, username, command.payload); //return this.emit(command.action, username, command.payload);
       else {

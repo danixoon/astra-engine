@@ -42,17 +42,18 @@ export class SyncState<T = any> {
       // Дополнительные данные, передающиеся после изменения стейта
 
       // Метод, изменяющий состояние, которое в последствии посылается
-      public(stateData: StatePartial<T>) {
-        publicState = { ...publicState, ...stateData };
+      public(stateData?: StatePartial<T>) {
+        if (stateData) publicState = { ...publicState, ...stateData };
+        else publicState = { ...publicState, ...privateState };
         return this;
       }
 
       // Метод, превращающий изменённое состояние, отправляемое игрокам,
-      // на основе возвращаемого значения callback-функции в аргументе
-      map(cb: (v: StatePartial<T>, state: T) => any) {
-        publicState = { ...publicState, ...cb(publicState, stateObject.data) };
-        return this;
-      }
+      // // на основе возвращаемого значения callback-функции в аргументе
+      // map(cb: (v: StatePartial<T>, state: T) => any) {
+      //   publicState = { ...publicState, ...cb(publicState, stateObject.data) };
+      //   return this;
+      // }
 
       // Метод, изменяющий состояние, которое не подлежит отправке
       private(cb: (v: StatePartial<T>, state: T) => any) {
