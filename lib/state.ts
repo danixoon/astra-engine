@@ -38,6 +38,8 @@ export class SyncState<T = any> {
     // То, что изменилось в состоянии и не подлежит отправке игрокам
     let privateState: StatePartial<T> = {};
 
+    let payloadCallback: (state: T) => any = () => ({});
+
     const Modify = class {
       // Дополнительные данные, передающиеся после изменения стейта
 
@@ -62,8 +64,9 @@ export class SyncState<T = any> {
       }
 
       // Метод, прикрепляющий доп. данные к отправке игроку, не влияющие на состояние
-      payload(data: any) {
-        payloadData = { ...data, ...payloadData };
+      payload(cb: (state: T) => StatePartial<T>) {
+        // payloadData = { ...data, ...payloadData };
+        payloadCallback = cb;
         return this;
       }
 
@@ -80,7 +83,7 @@ export class SyncState<T = any> {
     };
     const apply = (publicState: StatePartial<T>, privateState: StatePartial<T>, payload: any, target: Player[]) => {
       this.data = { ...this.data, ...publicState, ...privateState };
-      this.emitter.emit("state.change", label, { ...payload, ...publicState }, target);
+      this.emitter.emit("state.change", label, { ...payloadCallback(this.data), ...publicState }, target);
     };
 
     return new Modify();

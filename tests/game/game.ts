@@ -50,6 +50,7 @@ export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
   }
 
   onJoined(player: Player) {
+    // this.p
     const lState = this.getLobbyState();
     const pState = this.getPlayerState(player);
     lState

@@ -1,6 +1,6 @@
 {
   "name": "astra-engine",
-  "version": "0.1.12",
+  "version": "0.1.2b",
   "main": "build/index.js",
   "author": "D. <danixoon@gmail.com>",
   "description": "game web-engine",
@@ -16,16 +16,16 @@
   },
   "license": "MIT",
   "dependencies": {
+    "chalk": "^2.4.2",
     "express": "^4.17.1",
     "lodash": "^4.17.15",
     "socket.io": "^2.3.0"
   },
   "devDependencies": {
-    "typescript": "^3.6.3",
     "@types/express": "^4.17.1",
-    "@types/socket.io": "^2.1.3",
     "@types/jest": "^24.0.18",
     "@types/lodash": "^4.14.141",
+    "@types/socket.io": "^2.1.3",
     "@types/socket.io-client": "^1.4.32",
     "concurrently": "^4.1.2",
     "jest": "^24.9.0",
@@ -33,6 +33,7 @@
     "nodemon": "^1.19.2",
     "socket.io-client": "^2.3.0",
     "ts-jest": "^24.1.0",
-    "ts-node": "^8.4.1"
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.3"
   }
 }

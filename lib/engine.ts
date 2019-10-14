@@ -14,11 +14,11 @@ export class AstraEngine {
       try {
         await func(socket, player, payload, ...socketArgs);
       } catch (err) {
-        if (typeof err === "string") this.socketManager.error(socket.id, player.data.username, err);
+        if (typeof err === "string") this.socketManager.error(socket.id, err, player.data.username);
         else {
           let e = err as ISocketErrorPayload;
-          if (!e || !e.error) this.socketManager.error(socket.id, player.data.username, "internal error");
-          else this.socketManager.error(e.error, player.data.username, e.data);
+          if (!e || !e.error) this.socketManager.error(socket.id, "internal error", player.data.username);
+          else this.socketManager.error(e.error, e.data, player.data.username);
         }
 
         throw err;
@@ -30,7 +30,7 @@ export class AstraEngine {
     const { playerManager, socketManager } = this;
     socketManager.command(socket.id, "socket.connected", username);
 
-    const player = playerManager.create(socket, { username });
+    const player = playerManager.create(socket, new PlayerData(username));
     this.onPlayerConnected(player);
   }
 
@@ -63,7 +63,7 @@ export class AstraEngine {
     const { id } = payload;
     let lobby = lobbyManager.join(player, id);
     socketManager.joinToLobby(player, lobby.id);
-    socketManager.command(lobby.id, "lobby.joined", player.data.username, { lobbyId: lobby.id });
+    socketManager.command(lobby.id, "lobby.joined", player.data.username, { lobbyId: lobby.id, playerId: player.id });
     // НЕБОЛЬШОЙ КОСТЫЛЬ С ПОДПИСКОЙ НА СОКЕТЫ
     lobby.event("lobby.joined", player);
   }

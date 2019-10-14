@@ -63,7 +63,7 @@ export class AstraSocketManager extends EventEmitter {
       } catch (err) {
         // При ошибки в соединении - кидаем ошибку
         // this.command(err);
-        // this.error(socket.id, typeof err === "string" ? err : err.error || "authentication error");
+        this.error(socket.id, typeof err === "string" ? err : err.error || "authentication error");
         this.onSocketAction("socket.disconnected", socket, { reason: "authentication error" });
         socket.disconnect();
       }
@@ -88,10 +88,10 @@ export class AstraSocketManager extends EventEmitter {
     console.log(`${chalk.blue(`[${getTime()}] [command sending]`)} ${chalk.green(action)} to ${chalk.yellow(username || id)}`);
   }
 
-  public error(id: string, username: string, message: string, data?: any) {
+  public error(id: string, message: string, username?: string | null, data?: any) {
     // const command = createCommand(;
     this.command(id, "error", null, { error: message, data } as ISocketErrorPayload);
-    console.log(`${chalk.red(`[${getTime()}] [error]`)} ${chalk.green(message)} to ${chalk.yellow(username)}`);
+    console.log(`${chalk.red(`[${getTime()}] [error]`)} ${chalk.green(message)} to ${username ? chalk.yellow(username) : `socket ${chalk.yellow(id)}`}`);
   }
 
   // Джойнится конкретно к каналу сокета
@@ -107,7 +107,7 @@ export class AstraSocketManager extends EventEmitter {
   public onPlayerConnected(player: Player) {
     const { socket } = player;
     socket.on("command", (command: ISocketCommand) => {
-      if (!command.action) return this.error(socket.id, player.data.username, "invalid action"); //this.command(createError("invalid action"));
+      if (!command.action) return this.error(socket.id, "invalid action", player.data.username); //this.command(createError("invalid action"));
 
       console.log(`${chalk.cyan(`[${getTime()}] [command recieve]`)} ${chalk.green(command.action)} from ${chalk.yellow(player.data.username)}`);
 
