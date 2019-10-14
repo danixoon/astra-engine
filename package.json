@@ -1,12 +1,17 @@
 {
   "name": "astra-engine",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "index.js",
   "author": "D. <danixoon@gmail.com>",
+  "description": "game web-engine",
   "scripts": {
     "build": "tsc",
     "test": "jest --detectOpenHandles --forceExit --runInBand",
     "coverage": "jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danixoon/astra-engine"
   },
   "license": "MIT",
   "dependencies": {
