@@ -4,12 +4,19 @@ import { EventEmitter } from "events";
 import { StatePartial, SyncState } from "./state";
 
 export type StateChangeMapper<T> = (p: StatePartial<T>, s: T) => any;
-export type RespondCommand = (player: Player, action: string, payload?: any) => void;
+export type RespondCommand<T> = (arg: T, action: string, payload?: any) => void;
 export type StateChangeCommand<T> = (arg: T, action: string, changes: StatePartial<T>, target?: Player[]) => void;
-export type LobbyConstructor<T = any> = new (id: string, send: RespondCommand, lobbyState: StateChangeCommand<Lobby>, playerState: StateChangeCommand<Player>) => T;
+export type LobbyConstructor<T = any> = new (
+  id: string,
+  send: RespondCommand<Player>,
+  broadcast: RespondCommand<Lobby>,
+  lobbyState: StateChangeCommand<Lobby>,
+  playerState: StateChangeCommand<Player>
+) => T;
 
 export abstract class Lobby<T = any, K = any> {
-  protected readonly send: RespondCommand;
+  protected readonly send: RespondCommand<Player>;
+  protected readonly broadcast: RespondCommand<Lobby>;
 
   private readonly lobbyStateChange: StateChangeCommand<Lobby>;
   private readonly playerStateChange: StateChangeCommand<Player>;
@@ -43,9 +50,10 @@ export abstract class Lobby<T = any, K = any> {
 
   players: Player[] = [];
 
-  constructor(id: string, send: RespondCommand, lobbyState: StateChangeCommand<Lobby>, playerState: StateChangeCommand<Player>) {
+  constructor(id: string, send: RespondCommand<Player>, broadcast: RespondCommand<Lobby>, lobbyState: StateChangeCommand<Lobby>, playerState: StateChangeCommand<Player>) {
     this._id = id;
     this.send = send;
+    this.broadcast = broadcast;
     this.lobbyStateChange = lobbyState;
     this.playerStateChange = playerState;
   }
@@ -251,14 +259,16 @@ export class AstraLobbyManager extends EventEmitter {
   }
 
   // Метод, создающий лобби
-  public create<T extends Lobby>(LobbyType: new (id: string, send: RespondCommand, lobbyState: StateChangeCommand<Lobby>, playerState: StateChangeCommand<Player>) => T) {
+  public create<T extends Lobby>(
+    LobbyType: new (id: string, send: RespondCommand<Player>, broadcast: RespondCommand<Lobby>, lobbyState: StateChangeCommand<Lobby>, playerState: StateChangeCommand<Player>) => T
+  ) {
     const lobbyStateChange = (lobby: Lobby, action: string, changes: StatePartial, target?: Player[]) => {
       if (!target || target.length === 0) this.broadcastCommand(lobby, action, changes);
       else target.forEach(p => this.respondCommand(p, action, changes));
     };
     const playerStateChange = (player: Player, action: string, changes: StatePartial) => this.respondCommand(player, action, changes);
 
-    const lobby = new LobbyType(generateId(), this.respondCommand, lobbyStateChange, playerStateChange);
+    const lobby = new LobbyType(generateId(), this.respondCommand, this.broadcastCommand, lobbyStateChange, playerStateChange);
 
     this.lobbies.set(lobby.id, lobby);
     this.lobbiesQueue.push(lobby.id);

@@ -30,7 +30,6 @@ export class SyncState<T = any> {
   modify(label: string = this.defaultLabel) {
     const stateObject = this;
 
-    let payloadData: any = {};
     // Игроки, которым рассылается данное изменение состояния
     let targets: Player[] = [];
     // То, что изменилось в состоянии и подлежит отправке игрокам
@@ -78,10 +77,10 @@ export class SyncState<T = any> {
 
       // Метод, отправляющий данные и обновляюший состояние
       apply() {
-        apply(publicState, privateState, payloadData, targets);
+        apply(publicState, privateState, targets);
       }
     };
-    const apply = (publicState: StatePartial<T>, privateState: StatePartial<T>, payload: any, target: Player[]) => {
+    const apply = (publicState: StatePartial<T>, privateState: StatePartial<T>, target: Player[]) => {
       this.data = { ...this.data, ...publicState, ...privateState };
       this.emitter.emit("state.change", label, { ...payloadCallback(this.data), ...publicState }, target);
     };
