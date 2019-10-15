@@ -29,9 +29,11 @@ export class AstraEngine {
 
   private onSocketConnected(socket: socketIO.Socket, username: string) {
     const { playerManager, socketManager } = this;
-    socketManager.command(socket.id, "socket.connected", username);
+    if (playerManager.players.has(username)) throw `player <${username}> already connected`;
 
+    socketManager.command(socket.id, "socket.connected", username);
     const player = playerManager.create(socket, new PlayerData(username));
+
     this.onPlayerConnected(player);
   }
 
@@ -85,7 +87,7 @@ export class AstraEngine {
     const { lobbyId } = payload;
     const { disposed, lobby } = lobbyManager.leave(player, lobbyId);
 
-    socketManager.command(lobby.id, "lobby.leaved", player.data.username, { playerId: player.id, lobbyId: lobby.id });
+    socketManager.command(lobby.id, "lobby.leaved", null, { playerId: player.id, lobbyId: lobby.id });
     socketManager.leaveFromLobby(player, lobby.id);
     if (disposed) loggers.lobby("lobby  disposed", "lobby-" + lobby.id);
   }
