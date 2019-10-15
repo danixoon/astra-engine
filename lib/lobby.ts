@@ -108,6 +108,7 @@ export abstract class Lobby<T = any, K = any> {
       this.playerStateChange(player, action, { ...changes, ...mapper(changes, state.data) });
     });
 
+    // this.send(player, "lobby.players")
     // НЕНУЖНЫ КОНТРОЛЬ РАЗРАБАМ
     // state
     //   .modify()

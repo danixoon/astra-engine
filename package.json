@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "test": "jest --detectOpenHandles --forceExit --runInBand",
-    "prepublish": "npm run build",
+    "prepare": "npm run build",
     "coverage": "jest --coverage"
   },
   "repository": {

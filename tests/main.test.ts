@@ -7,7 +7,7 @@ import { TestLobby } from "./game/game";
 
 export function start() {
   const app = express();
-  const port = process.env.PORT || 5000;
+  const port = process.env.PORT || 5001;
   const server = app.listen(port, () => `server listening at ${port} port`);
   const io = socketIOServer.listen(server);
   const engine = new AstraEngine(io, TestLobby);
@@ -15,7 +15,7 @@ export function start() {
 
 const createClient = (cb: (io: SocketIOClient.Socket, username: string) => void, ...usernames: string[]) => {
   return usernames.map(u => {
-    const io = socketIO("http://localhost:5000", { query: { username: u } });
+    const io = socketIO("http://localhost:5001", { query: { username: u } });
     cb(io, u);
     return io;
   });
@@ -43,7 +43,7 @@ const subscribeClients = (...usernames: string[]) => {
   return clients;
 };
 
-jest.setTimeout(1000);
+jest.setTimeout(3000);
 
 start();
 
