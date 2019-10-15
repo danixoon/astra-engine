@@ -244,13 +244,14 @@ export class AstraLobbyManager extends EventEmitter {
     this.connections.delete(player.id);
     lobby.players = lobby.players.filter(p => p.id !== player.id);
 
-    this.lobbiesQueue.push(lobby.id);
-
     // lobby.onLeaved(player);
     // НЕ КОСТЫЛЬ (?) НЕ ПЕРЕЕЗЖАЕТ
     lobby.event("lobby.leaved", player);
 
-    if (!lobby.isEmpty) return false;
+    if (!lobby.isEmpty) {
+      this.lobbiesQueue.push(lobby.id);
+      return false;
+    }
 
     this.dispose(lobby.id);
     return true;
