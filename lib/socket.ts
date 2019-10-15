@@ -4,7 +4,7 @@ import chalk from "chalk";
 import { EventEmitter } from "events";
 import { Player } from "./player";
 import { Lobby } from "./lobby";
-import { getTime } from "./utils";
+import { getTime, loggers } from "./utils";
 
 export interface ISocketCommand {
   action: string;
@@ -85,13 +85,16 @@ export class AstraSocketManager extends EventEmitter {
 
   public command(id: string, action: string, username?: string | null, payload?: any) {
     this.io.to(id).emit("command", createCommand(action, payload));
-    console.log(`${chalk.blue(`[${getTime()}] [command sending]`)} ${chalk.green(action)} to ${chalk.yellow(username || id)}`);
+    loggers.command(true, { action, payload }, username || "socket-" + id);
+    // logger().command(false, username || id, { action, payload });
+
+    // console.log(`${chalk.blue(`[${getTime()}] [command sending]`)} ${chalk.green(action)} to ${chalk.yellow(username || id)}`);
   }
 
   public error(id: string, message: string, username?: string | null, data?: any) {
     // const command = createCommand(;
     this.command(id, "error", null, { error: message, data } as ISocketErrorPayload);
-    console.log(`${chalk.red(`[${getTime()}] [error]`)} ${chalk.green(message)} to ${username ? chalk.yellow(username) : `socket ${chalk.yellow(id)}`}`);
+    loggers.error(message, username || "socket-" + id);
   }
 
   // Джойнится конкретно к каналу сокета
@@ -109,7 +112,8 @@ export class AstraSocketManager extends EventEmitter {
     socket.on("command", (command: ISocketCommand) => {
       if (!command.action) return this.error(socket.id, "invalid action", player.data.username); //this.command(createError("invalid action"));
 
-      console.log(`${chalk.cyan(`[${getTime()}] [command recieve]`)} ${chalk.green(command.action)} from ${chalk.yellow(player.data.username)}`);
+      loggers.command(false, command, player.data.username);
+      // console.log(`${chalk.cyan(`[${getTime()}] [command recieve]`)} ${chalk.green(command.action)} from ${chalk.yellow(player.data.username)}`);
 
       if (command.action.startsWith("lobby.")) return this.onPlayerAction(command.action, player, command.payload);
       //return this.emit(command.action, username, command.payload); //return this.emit(command.action, username, command.payload);

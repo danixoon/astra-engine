@@ -1,4 +1,4 @@
-import { generateId, mapValueChecker } from "./utils";
+import { generateId, mapValueChecker, loggers } from "./utils";
 import { Player } from "./player";
 import { EventEmitter } from "events";
 import { StatePartial, SyncState } from "./state";
@@ -64,6 +64,7 @@ export abstract class Lobby<T = any, K = any> {
   get isEmpty(): boolean {
     return this.players.length === 0;
   }
+
   event(event: "lobby.dispose"): void;
   event(event: "lobby.command", player: Player, action: string, payload?: any): void;
   event(event: "lobby.joined" | "lobby.leaved", player: Player): void;
@@ -84,6 +85,7 @@ export abstract class Lobby<T = any, K = any> {
       case "lobby.dispose":
         this.lobbyDispose();
         this.onDisposed();
+
         break;
     }
   }
@@ -149,6 +151,7 @@ export abstract class Lobby<T = any, K = any> {
       this.lobbyStateChange(this, action, { ...changes, ...mapper(changes, this._lobbyState.data) }, target);
     });
 
+    // loggers.lobby("lobby initialized", "lobby-" + this.id);
     this.onInit();
   }
 }
@@ -272,6 +275,8 @@ export class AstraLobbyManager extends EventEmitter {
 
     this.lobbies.set(lobby.id, lobby);
     this.lobbiesQueue.push(lobby.id);
+
+    loggers.lobby("lobby   created", "lobby-" + lobby.id);
     return lobby;
   }
   // Внешняя компанда, вызывающее уничтожение лобби

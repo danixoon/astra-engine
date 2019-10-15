@@ -3,6 +3,7 @@ import { EventEmitter } from "events";
 import { Player, PlayerData, AstraPlayerManager } from "./player";
 import { AstraSocketManager, ISocketError, ISocketCommand, ISocketErrorPayload } from "./socket";
 import { AstraLobbyManager, Lobby, LobbyConstructor } from "./lobby";
+import { loggers } from "./utils";
 
 export class AstraEngine {
   private socketManager: AstraSocketManager;
@@ -44,6 +45,8 @@ export class AstraEngine {
 
     socketManager.onPlayerConnected(player);
     socketManager.command(player.socket.id, "player.connected", player.data.username, { username: player.data.username });
+
+    // loggers.player("player joined", player.data.username);
   }
 
   private onPlayerDisconnected(socket: socketIO.Socket, player: Player) {
@@ -55,13 +58,15 @@ export class AstraEngine {
     try {
       this.onLobbyLeave(socket, player, {});
     } catch (e) {}
+
+    // loggers.player("player leave", player.data.username);
   }
 
   private onLobbyJoin(socket: socketIO.Socket, player: Player, payload: any) {
     const { playerManager, socketManager, lobbyManager } = this;
 
-    const { id } = payload;
-    let lobby = lobbyManager.join(player, id);
+    const { lobbyId } = payload;
+    let lobby = lobbyManager.join(player, lobbyId);
     socketManager.joinToLobby(player, lobby.id);
     socketManager.command(lobby.id, "lobby.joined", player.data.username, { lobbyId: lobby.id, playerId: player.id });
     // НЕБОЛЬШОЙ КОСТЫЛЬ С ПОДПИСКОЙ НА СОКЕТЫ
@@ -70,11 +75,12 @@ export class AstraEngine {
 
   private onLobbyLeave(socket: socketIO.Socket, player: Player, payload: any) {
     const { playerManager, socketManager, lobbyManager } = this;
-    const { id } = payload;
-    const { disposed, lobby } = lobbyManager.leave(player, id);
+    const { lobbyId } = payload;
+    const { disposed, lobby } = lobbyManager.leave(player, lobbyId);
 
-    socketManager.command(lobby.id, "lobby.leaved", player.data.username, { playerId: player.id });
+    socketManager.command(lobby.id, "lobby.leaved", player.data.username, { playerId: player.id, lobbyId: lobby.id });
     socketManager.leaveFromLobby(player, lobby.id);
+    loggers.lobby("lobby  disposed", "lobby-" + lobby.id);
   }
 
   private onPlayerCommand(socket: socketIO.Socket, player: Player, socketPayload: any) {
