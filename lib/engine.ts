@@ -15,11 +15,12 @@ export class AstraEngine {
       try {
         await func(socket, player, payload, ...socketArgs);
       } catch (err) {
-        if (typeof err === "string") this.socketManager.error(socket.id, err, player.data.username);
+        const author = player ? (player.data ? player.data.username || socket.id : socket.id) : socket.id;
+        if (typeof err === "string") this.socketManager.error(socket.id, err, author);
         else {
           let e = err as ISocketErrorPayload;
-          if (!e || !e.error) this.socketManager.error(socket.id, "internal error", player.data.username);
-          else this.socketManager.error(e.error, e.data, player.data.username);
+          if (!e || !e.error) this.socketManager.error(socket.id, "internal error", author);
+          else this.socketManager.error(e.error, e.data, author);
         }
 
         throw err;
