@@ -80,7 +80,7 @@ export class AstraEngine {
 
     socketManager.command(lobby.id, "lobby.leaved", player.data.username, { playerId: player.id, lobbyId: lobby.id });
     socketManager.leaveFromLobby(player, lobby.id);
-    loggers.lobby("lobby  disposed", "lobby-" + lobby.id);
+    if (disposed) loggers.lobby("lobby  disposed", "lobby-" + lobby.id);
   }
 
   private onPlayerCommand(socket: socketIO.Socket, player: Player, socketPayload: any) {
