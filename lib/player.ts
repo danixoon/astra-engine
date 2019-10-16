@@ -27,12 +27,12 @@ export class AstraPlayerManager {
 
     this.players.set(id, player);
 
-    loggers.player("player created", data.username);
+    loggers.player("player  created", data.username);
     return player;
   }
 
   remove(id: string) {
     this.players.delete(id);
-    loggers.player("player removed", id);
+    loggers.player("player  removed", id);
   }
 }

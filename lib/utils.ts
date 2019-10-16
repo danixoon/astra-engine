@@ -36,7 +36,7 @@ export const getTime = () => {
 export const loggers = {
   command: (send: boolean, command: ISocketCommand, username: string) => {
     logger()
-      .action("command " + (send ? "sending" : "recieve"), send ? "blue" : "cyan")
+      .action("command " + (send ? "sending" : "recieve"), "blue")
       .content(command.action, "green")
       .content(send ? ">>>" : "<<<")
       .content(username, "yellow")
@@ -59,7 +59,7 @@ export const loggers = {
   },
   player: (action: string, username: string) => {
     logger()
-      .action(action, "magentaBright")
+      .action(action, "cyan")
       .content(username, "yellow")
       .log();
   }
