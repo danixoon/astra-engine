@@ -73,10 +73,12 @@ export abstract class Lobby<T = any, K = any> {
     switch (event) {
       case "lobby.joined":
         this.playerJoined(player);
+
         this.onJoined(player);
         break;
       case "lobby.leave":
         this.playerLeaved(player);
+
         this.onLeaved(player);
         break;
       case "lobby.command":
@@ -151,6 +153,8 @@ export abstract class Lobby<T = any, K = any> {
     this._lobbyState.on("state.change", (action: string, changes: StatePartial, target: Player[]) => {
       this.lobbyStateChange(this, action, { ...changes, ...mapper(changes, this._lobbyState.data) }, target);
     });
+
+    loggers.lobby("lobby initialze", this.id);
 
     // loggers.lobby("lobby initialized", "lobby-" + this.id);
     this.onInit();

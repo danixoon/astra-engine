@@ -51,11 +51,12 @@ export const loggers = {
       .content(author, "yellow")
       .log();
   },
-  lobby: (action: string, id: string) => {
-    logger()
+  lobby: (action: string, id: string, username?: string) => {
+    const log = logger()
       .action(action, "magenta")
-      .content(id, "yellow")
-      .log();
+      .content(id, "yellow");
+    if (username) log.content("player").content(username, "yellow");
+    log.log();
   },
   player: (action: string, username: string) => {
     logger()

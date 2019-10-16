@@ -71,6 +71,8 @@ export class AstraEngine {
     const { lobbyId } = payload;
     let lobby = lobbyManager.join(player, lobbyId);
 
+    loggers.lobby("lobby    joined", lobby.id, player.data.username);
+
     socketManager.command(lobby.id, "lobby.joined", null, { lobbyId: lobby.id, playerId: player.id });
     socketManager.joinToLobby(player, lobby.id);
     socketManager.command(player.socket.id, "lobby.joined", player.data.username, { lobbyId: lobby.id, playerId: player.id, playerIds: lobby.players.map(p => p.id) });
@@ -87,6 +89,8 @@ export class AstraEngine {
     const { playerManager, socketManager, lobbyManager } = this;
     const { lobbyId } = payload;
     const { disposed, lobby } = lobbyManager.leave(player, lobbyId);
+
+    loggers.lobby("lobby    leaved", lobby.id, player.data.username);
 
     socketManager.command(lobby.id, "lobby.leaved", null, { playerId: player.id, lobbyId: lobby.id });
     socketManager.leaveFromLobby(player, lobby.id);
