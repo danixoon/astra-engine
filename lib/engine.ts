@@ -19,11 +19,11 @@ export class AstraEngine {
         if (typeof err === "string") this.socketManager.error(socket.id, err, author);
         else {
           let e = err as ISocketErrorPayload;
-          if (!e || !e.error) this.socketManager.error(socket.id, "internal error", author);
-          else this.socketManager.error(e.error, e.data, author);
+          if (!e || !e.error) {
+            this.socketManager.error(socket.id, "internal error", author);
+            throw err;
+          } else this.socketManager.error(e.error, e.data, author);
         }
-
-        throw err;
       }
     };
   }
