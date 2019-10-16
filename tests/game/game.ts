@@ -27,20 +27,13 @@ export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
   field: IGameCell[] = [];
 
   createLobbyState = () => ({
-    state: {
-      time: 10,
-      field: { width: 5, height: 5 }
-    }
+    time: 10,
+    field: { width: 5, height: 5 }
   });
 
   createPlayerState = () => ({
-    state: {
-      score: 0,
-      field: [2]
-    },
-    mapper: (s: StatePartial<ITestPlayerState>, v: ITestPlayerState) => ({
-      field: s.field ? s.field.map(id => this.field[id]) : []
-    })
+    score: 0,
+    field: [2]
   });
 
   onInit() {
@@ -51,26 +44,57 @@ export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
 
   onJoined(player: Player) {
     // this.p
-    const lState = this.getLobbyState();
-    const pState = this.getPlayerState(player);
-    lState
-      .modify()
-      .public(lState.data)
-      .apply();
-
-    pState
-      .modify()
-      .public(pState.data)
-      .apply();
-
-    console.log(pState.data);
+    // const lState = this.getLobbyState();
+    // const pState = this.getPlayerState(player);
+    // lState
+    //   .modify()
+    //   .public(lState.data)
+    //   .apply();
+    // pState
+    //   .modify()
+    //   .public(pState.data)
+    //   .apply();
+    // console.log(pState.data);
   }
 
   onCommand(player: Player, action: string) {
     if (action === "game.ping") {
-      // Послать данные конкретно игроку
-      this.send(player, "game.pong");
-      const state = this.getPlayerState(player);
+      this.command(
+        player,
+        "game.pong",
+        this.getPlayerState(player)
+          .modify((s, c) => ({ score: 200 }))
+          .apply()
+      );
+
+      // this.mapPlayerState((p, s) => {
+      //   const state = s
+      //     .modify(s => ({ score: 10 }))
+      //     .map((s, v) => ({
+      //       ...v,
+      //       score: `score: ${v.score}`
+      //     }))
+      //     .apply();
+
+      //   this.command(p, "game.pong", state);
+      // });
+
+      // const s = this.getLobbyState().modify((s) => );
+
+      // const ps = state
+      //   .modify(s => ({ score: 10 }))
+      //   .map((s, v) => ({
+      //     score: `score: ${v.score}`
+      //   }))
+      //   .apply();
+
+      // this.send(player, "who", ps);
+
+      // const changes = state
+      //   .edit()
+      //   .modify(s => ({ score: s.score + 10 }))
+      //   .apply().changes;
+
       // const changes = {
       //   field: [2]
       // };

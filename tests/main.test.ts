@@ -15,7 +15,7 @@ export function start() {
 
 const createClient = (cb: (io: SocketIOClient.Socket, username: string) => void, ...usernames: string[]) => {
   return usernames.map(u => {
-    const io = socketIO("http://localhost:5001", { query: { username: u } });
+    const io = socketIO("ws://localhost:5001", { query: { username: u }, transports: ["websocket"], upgrade: false });
     cb(io, u);
     return io;
   });
@@ -26,7 +26,7 @@ const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
     const bind = (c: any) => {
       if (c.action !== action) return;
       socket.removeListener("command", bind);
-      res(c);
+      res(c.payload);
     };
     socket.on("command", bind);
   });
@@ -35,8 +35,8 @@ const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
 const subscribeClients = (...usernames: string[]) => {
   const clients = createClient((io, u) => {
     io.on("command", (data: any) => {
-      if (data.action === "error") console.log(`action <${data.action}> to <${u}>\nmessage: ${data.payload.error}`);
-      else console.log(`action <${data.action}> to <${u}> | payload:\n`, data.payload);
+      // if (data.action === "error") console.log(`action <${data.action}> to <${u}>\nmessage: ${data.payload.error}`);
+      // else console.log(`action <${data.action}> to <${u}> | payload:\n`, data.payload);
     });
     io.on("connect", () => console.log(`<${u}> connection!`));
   }, ...usernames);
@@ -65,7 +65,8 @@ describe("init test", () => {
   });
 
   it("ping command", async done => {
-    awaitCommand(io, "game.pong").then(c => {
+    awaitCommand(io, "game.pong").then((c: any) => {
+      console.log("ping score: " + c.score);
       done();
     });
 

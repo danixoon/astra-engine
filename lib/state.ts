@@ -5,86 +5,50 @@ export type StatePartial<T = any> = {
   [P in keyof T]?: T[P];
 };
 
+export type MappedPartial<T = any> = {
+  [P in keyof T]?: T[P] | any;
+};
+
+type ModifyCallback<T> = (s: T, c: StatePartial<T>) => StatePartial<T>;
+type MapperCallback<T> = (s: T, c: StatePartial<T>) => MappedPartial<T>;
+
 export class SyncState<T = any> {
-  private emitter: EventEmitter = new EventEmitter();
-  private defaultLabel: string = "state.change";
   data: T;
 
-  constructor(defaultState: T, changeLabel: string) {
+  constructor(defaultState: T) {
     this.data = defaultState;
-    this.defaultLabel = changeLabel;
   }
 
-  on(event: string, listener: (...args: any[]) => void) {
-    this.emitter.on(event, listener);
-  }
+  modify(cb: ModifyCallback<T>) {
+    // Объект нового состояния
+    let state = { ...this.data } as T;
+    // Все внутрениие изменения состояния
+    let changes = {} as StatePartial<T>;
+    let mapped: StatePartial<T> | null = null;
 
-  off(event: string, listener: (...args: any[]) => void) {
-    this.emitter.off(event, listener);
-  }
-
-  disable(event?: string) {
-    this.emitter.removeAllListeners(event);
-  }
-
-  modify(label: string = this.defaultLabel) {
-    const stateObject = this;
-
-    // Игроки, которым рассылается данное изменение состояния
-    let targets: Player[] = [];
-    // То, что изменилось в состоянии и подлежит отправке игрокам
-    let publicState: StatePartial<T> = {};
-    // То, что изменилось в состоянии и не подлежит отправке игрокам
-    let privateState: StatePartial<T> = {};
-
-    let payloadCallback: (state: T) => any = () => ({});
+    const applyState = (data: StatePartial<T>) => {
+      this.data = { ...this.data, ...data };
+    };
 
     const Modify = class {
-      // Дополнительные данные, передающиеся после изменения стейта
-
-      // Метод, изменяющий состояние, которое в последствии посылается
-      public(stateData?: StatePartial<T>) {
-        if (stateData) publicState = { ...publicState, ...stateData };
-        else publicState = { ...publicState, ...privateState };
+      modify(cb: ModifyCallback<T>) {
+        // То, что изменилось
+        const c = cb(state, changes);
+        changes = { ...changes, ...c };
         return this;
       }
-
-      // Метод, превращающий изменённое состояние, отправляемое игрокам,
-      // // на основе возвращаемого значения callback-функции в аргументе
-      // map(cb: (v: StatePartial<T>, state: T) => any) {
-      //   publicState = { ...publicState, ...cb(publicState, stateObject.data) };
-      //   return this;
-      // }
-
-      // Метод, изменяющий состояние, которое не подлежит отправке
-      private(cb: (v: StatePartial<T>, state: T) => any) {
-        privateState = { ...privateState, ...cb(publicState, stateObject.data) }; // { ...this.silentStateData, ...stateData };
+      map(cb: MapperCallback<T>) {
+        const c = cb(state, changes);
+        mapped = { ...mapped, ...c };
         return this;
       }
-
-      // Метод, прикрепляющий доп. данные к отправке игроку, не влияющие на состояние
-      payload(cb: (state: T) => StatePartial<T>) {
-        // payloadData = { ...data, ...payloadData };
-        payloadCallback = cb;
-        return this;
-      }
-
-      // Метод, уточняющий, каким игрокам отправить данные (действует только для лобби)
-      target(...players: Player[]) {
-        targets = players;
-        return this;
-      }
-
-      // Метод, отправляющий данные и обновляюший состояние
       apply() {
-        apply(publicState, privateState, targets);
+        applyState(changes);
+        return mapped === null ? changes : mapped;
       }
     };
-    const apply = (publicState: StatePartial<T>, privateState: StatePartial<T>, target: Player[]) => {
-      this.data = { ...this.data, ...publicState, ...privateState };
-      this.emitter.emit("state.change", label, { ...payloadCallback(this.data), ...publicState }, target);
-    };
 
-    return new Modify();
+    const s = new Modify().modify(cb);
+    return s;
   }
 }
