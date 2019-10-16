@@ -98,9 +98,11 @@ export abstract class Lobby<T = any, K = any> {
 
     let state = this._playerState.get(player.id);
     let mapper: StateChangeMapper<any>;
+
+    const pState = this.createPlayerState();
+    mapper = pState.mapper || (s => s);
+
     if (!state) {
-      let pState = this.createPlayerState();
-      mapper = pState.mapper || (s => s);
       state = new SyncState(pState.state, "player.state");
       this._playerState.set(player.id, state);
     }
@@ -126,6 +128,8 @@ export abstract class Lobby<T = any, K = any> {
     if (!state) throw "WTF THIS IS THE BUG.";
 
     state.disable("state.change");
+    // Если надо, чтобы состояние игрока в лобби не сохранялось - раскомментить
+    //this._playerState.delete(player.id);
 
     // state.on("state.change", (action: string, changes: StatePartial) => {
     //   this.playerStateChange(player, action, changes);
