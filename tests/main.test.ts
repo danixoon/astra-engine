@@ -23,10 +23,10 @@ const createClient = (cb: (io: SocketIOClient.Socket, username: string) => void,
 
 const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
   return new Promise((res, rej) => {
-    const bind = (c: any) => {
-      if (c.action !== action) return;
+    const bind = (a: string, p: any) => {
+      if (a !== action) return;
       socket.removeListener("command", bind);
-      res(c.payload);
+      res(p);
     };
     socket.on("command", bind);
   });

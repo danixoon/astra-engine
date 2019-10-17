@@ -84,7 +84,7 @@ export class AstraSocketManager extends EventEmitter {
   // }
 
   public command(id: string, action: string, username?: string | null, payload?: any) {
-    this.io.to(id).emit("command", createCommand(action, payload));
+    this.io.to(id).emit("command", action, payload);
     loggers.command(true, { action, payload }, username || "socket-" + id);
     // logger().command(false, username || id, { action, payload });
 
