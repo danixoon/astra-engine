@@ -61,7 +61,7 @@ describe("init test", () => {
       done();
     });
 
-    io.emit("command", { action: "lobby.join" });
+    io.emit("command", "lobby.join");
   });
 
   it("ping command", async done => {
@@ -70,7 +70,7 @@ describe("init test", () => {
       done();
     });
 
-    io.emit("command", { action: "game.ping" });
+    io.emit("command", "game.ping");
   });
 
   it("leave lobby", async done => {
@@ -78,7 +78,7 @@ describe("init test", () => {
       done();
     });
 
-    io.emit("command", { action: "lobby.leave" });
+    io.emit("command", "lobby.leave");
   });
 
   // it("multiplayer lobbies", async done => {
