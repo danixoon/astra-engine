@@ -58,7 +58,8 @@ server
     .on("lobby.joined", ({ playerId, lobbyId }) => {
       // Logging that we are connected
       console.log(`player with id ${playerId} connected to lobby with id ${lobbyId}`);
-      // We can emit commands after joining, so we emitting "ping" with payload of current time by Date.now() with interval of 500 ms
+      // We can emit commands after joining, so we emitting "ping" with payload 
+      // of current time by Date.now() with interval of 500 ms
       setInterval(() => io.emit("command", "ping", Date.now()), 500);
     })
     // When server responds with command "pong"
