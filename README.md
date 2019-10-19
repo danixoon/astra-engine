@@ -1,85 +1,86 @@
 # astra-engine
 
-## Features
+## Что это?
 
-astra-engine - web game engine written on node.js with socket.io
+astra-engine - игровой веб-движок, написанный на NodeJS и использующий модуль socket.io
 
-## Installation
+## Установка
 
 ```bash
 npm install astra-engine
 ```
 
-## How to use
+## Как использовать
 
-Server on TypeScript using socket.io:
+Запуск сервера на TypeScript:
 ```ts
 import SocketIO from "socket.io";
 import { AstraEngine, Lobby, Player } from "astra-engine";
 
-// Extending base Lobby class
+// Наследуемся от базового класса лобби
 class GameLobby extends Lobby {
-  // The method that casting when a player in the lobby recieve command
+  // Метод вызывается когда команда прилетает от игрока в данном лобби
   onCommand(player: Player, action: string, payload: any) {
-    // When action of command is "ping" - we respond with difference between our time and client time
+    // Если экшен команды "ping"
     if(action === "ping") {
+      // Определяем задержку между игроком и сервером, которая является разницей во времени между ними
       const ping = Date.now() - payload;
-      // And responding to the player with command method
+      // И посылаем игроку задержку (пинг)
       this.command(player, "pong", ping);
     }
   }
 }
 
-// Creating the server (can be on any framework you wish)
+// Создаём сервер (может быть любым фреймворком, поддерживающим socket.io)
 const io = SocketIO(3000);
-// Creating engine with passing io and GameLobby as arguments
+// И экземпляр движка, передавая созданный socket.io сервер и класс лобби, используемый по умолчанию
 const engine = new AstraEngine(io, GameLobby);
 ```
 
-Client on JavaScript using socket.io-client:
+Подключение клиента на JavaScript:
 ```js
-// EventEmitter not required, but very userful for simplicity
+// EventEmitter не обязателен, но очень полезен для упрощения обработки команд
 const { EventEmitter } = require("events");
 const SocketIO = require("socket.io-client");
 
-// Creating instance of EventEmitter that will recieve only commands from server
+// Создаём экземпляр EventEmitter'а
 const server = new EventEmitter();
 
-// Binding events from server
+// Привязываем к нему все обрабатываемые команды
 server
-     // When a player connected (after authentication)
+     // Когда игрок подключился (после аунтентификации)
     .on("player.connected", ({ playerId }) => {
-      // We taking playerId from command payload and displaying it to console
+      // Берём playerId из данных, пришедших от сервера (пейлода)
       console.log(`player with id ${playerId} connected!`);
-      // After the connection we can join to the lobby with sending a command "join.lobby" in event "command"
+      // И отправляем команду подсоединения к лобби, т.к. после подключения мы можем это сделать
       io.emit("command", "lobby.join");
      })
-     // When we joined to the Lobby any command started besides "lobby." going directly to lobby's onCommand method
+     // Когда мы подключились к лобби - мы можем отправлять команды непосредственно в него
     .on("lobby.joined", ({ playerId, lobbyId }) => {
-      // Logging that we are connected
+      // Выводим, что мы подключились в лобби
       console.log(`player with id ${playerId} connected to lobby with id ${lobbyId}`);
-      // We can emit commands after joining, so we emitting "ping" with payload 
-      // of current time by Date.now() with interval of 500 ms
+      // И, с интервалом в 500 мс, посылаем текущие время серверу
       setInterval(() => io.emit("command", "ping", Date.now()), 500);
     })
-    // When server responds with command "pong"
+    // Когда же сервер отвечает нам командой "pong"
     .on("pong", ping => {
-      // We just displaying payload ping which came from the server
+      // Мы выводим пинг, полученный из аргумента, являющимся пришедшими данными от движка
       console.log("pong!", `ping: ${ping} ms`)
     })
 
-// Creating socket.io connection with query containing username (aka token, them not supported yet)
+// Создаём соединение, передавая в query строку username, являющейся ключём аутентификации в данный момент
+// (поддержка токенов пока не реализована)
 const io = SocketIO("http://localhost:3000", { query: { username: "1337player" } });
-// And, finally, binding "command" event to emit server emitter
+// И враппим данные о команде в наш эмиттер
 io.on("command", (action, payload) => server.emit(action, payload));
 ```
 
-## Testing
+## Тесты
 
 ```
 yarn test
 ```
 
-## License
+## Лицензия
 
 [MIT](LICENSE)
