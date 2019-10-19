@@ -47,11 +47,11 @@ const server = new EventEmitter();
 
 // Binding events from server
 server
-     // When player connected (meaning after authentication)
+     // When a player connected (after authentication)
     .on("player.connected", ({ playerId }) => {
       // We taking playerId from command payload and displaying it to console
       console.log(`player with id ${playerId} connected!`);
-      // After connection we can join to the lobby with sending a command "join.lobby" in event "command"
+      // After the connection we can join to the lobby with sending a command "join.lobby" in event "command"
       io.emit("command", "lobby.join");
      })
      // When we joined to the Lobby any command started besides "lobby." going directly to lobby's onCommand method
