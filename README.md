@@ -47,7 +47,7 @@ server
       setInterval(() => io.emit("command", "ping", Date.now()), 500);
     })
     .on("pong", ping => {
-      console.log(`pong! ping: ${ping}`)
+      console.log("pong!", `ping: ${ping}ms`)
     })
 
 const io = SocketIO("http://localhost:3000", { query: { username: "1337player" } });
