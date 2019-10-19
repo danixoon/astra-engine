@@ -59,13 +59,14 @@ export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
 
   onCommand(player: Player, action: string) {
     if (action === "game.ping") {
-      this.command(
-        player,
-        "game.pong",
-        this.getPlayerState(player)
-          .modify((s, c) => ({ score: 200 }))
-          .apply()
-      );
+      throw "lol";
+      // this.command(
+      //   player,
+      //   "game.pong",
+      //   this.getPlayerState(player)
+      //     .modify((s, c) => ({ score: 200 }))
+      //     .apply()
+      // );
 
       // this.mapPlayerState((p, s) => {
       //   const state = s

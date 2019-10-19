@@ -93,7 +93,7 @@ export class AstraSocketManager extends EventEmitter {
 
   public error(id: string, message: string, username?: string | null, data?: any) {
     // const command = createCommand(;
-    this.command(id, "error", null, { error: message, data } as ISocketErrorPayload);
+    this.command(id, "error", null, { message, ...data });
     loggers.error(message, username || "socket-" + id);
   }
 

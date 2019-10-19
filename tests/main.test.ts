@@ -34,8 +34,10 @@ const awaitCommand = (socket: SocketIOClient.Socket, action: string) => {
 
 const subscribeClients = (...usernames: string[]) => {
   const clients = createClient((io, u) => {
-    io.on("command", (data: any) => {
-      // if (data.action === "error") console.log(`action <${data.action}> to <${u}>\nmessage: ${data.payload.error}`);
+    io.on("command", (action: string, data: any) => {
+      if (action === "error") {
+        console.log(`action <${data.action}> to <${u}>\nmessage: `, data.payload);
+      }
       // else console.log(`action <${data.action}> to <${u}> | payload:\n`, data.payload);
     });
     io.on("connect", () => console.log(`<${u}> connection!`));
@@ -70,7 +72,7 @@ describe("init test", () => {
       done();
     });
 
-    io.emit("command", "game.ping");
+    io.emit("command", "game.ping", { randomId: Math.random() });
   });
 
   it("leave lobby", async done => {

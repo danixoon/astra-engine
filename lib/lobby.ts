@@ -208,7 +208,12 @@ export class AstraLobbyManager extends EventEmitter {
 
   public command(player: Player, action: string, payload: any) {
     const lobby = this.getConnection(player.id, true);
-    lobby.event("lobby.command", player, action, payload);
+    try {
+      lobby.event("lobby.command", player, action, payload);
+    } catch (err) {
+      if (typeof err === "string") throw { action, randomId: payload.randomId, error: err };
+      else throw err;
+    }
     // lobby.onCommand(player, action, payload);
   }
 
