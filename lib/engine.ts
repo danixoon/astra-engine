@@ -73,9 +73,10 @@ export class AstraEngine {
 
     loggers.lobby("lobby    joined", lobby.id, player.data.username);
 
-    socketManager.command(lobby.id, "lobby.joined", null, { lobbyId: lobby.id, playerId: player.id });
+    // const joinData =
+    // socketManager.command(lobby.id, "lobby.joined", null, { lobbyId: lobby.id, playerId: player.id });
     socketManager.joinToLobby(player, lobby.id);
-    socketManager.command(player.socket.id, "lobby.joined", player.data.username, { lobbyId: lobby.id, playerId: player.id, playerIds: lobby.players.map(p => p.id) });
+    socketManager.command(lobby.id, "lobby.joined", null, { lobbyId: lobby.id, playerId: player.id, playerIds: lobby.players.map(p => p.id) });
 
     // lobby.players.forEach(async p => {
     //   if (p.id !== player.id) socketManager.command(p.id, "lobby.joined", player.data.username, { lobbyId: lobby.id, playerId: player.id });
