@@ -1,6 +1,6 @@
 {
   "name": "astra-engine",
-  "version": "0.1.43",
+  "version": "0.1.44",
   "main": "./build/index.js",
   "author": "D. <danixoon@gmail.com>",
   "description": "game web-engine",
