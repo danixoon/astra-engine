@@ -111,7 +111,7 @@ export class AstraSocketManager extends EventEmitter {
     const { socket } = player;
     socket.on("command", (action: string, payload: any) => {
       const command = createCommand(action, payload);
-      if (!command.action) return this.error(socket.id, "invalid action", player.data.username); //this.command(createError("invalid action"));
+      if (!command.action || typeof command.action !== "string") return this.error(socket.id, "invalid action", player.data.username); //this.command(createError("invalid action"));
 
       loggers.command(false, command, player.data.username);
       // console.log(`${chalk.cyan(`[${getTime()}] [command recieve]`)} ${chalk.green(command.action)} from ${chalk.yellow(player.data.username)}`);
