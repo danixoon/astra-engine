@@ -14,10 +14,10 @@ export abstract class Lobby<T = any, K = any> {
 
   private readonly _id: string;
 
-  abstract readonly maxPlayers: number;
+  readonly maxPlayers: number = 2;
 
-  abstract readonly createLobbyState: () => T;
-  abstract readonly createPlayerState: () => K;
+  readonly createLobbyState: () => T = () => ({} as T);
+  readonly createPlayerState: () => K = () => ({} as K);
 
   getLobbyState = () => {
     return this._lobbyState;
