@@ -72,7 +72,7 @@ describe("init test", () => {
       done();
     });
 
-    io.emit("command", "game.ping", { randomId: Math.random() });
+    io.emit("command", "game.ping");
   });
 
   it("leave lobby", async done => {

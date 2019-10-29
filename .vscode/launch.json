@@ -7,6 +7,18 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Launch via Yarn",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["run", "game"],
+      "port": 5858,
+      "console": "integratedTerminal",
+      "env": {
+        "TS_NODE_COMPILER_OPTIONS": "{\"module\":\"commonjs\", \"strict\": false}"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Launch Program via Node",
       "program": "${workspaceFolder}/${relativeFile}"
     },

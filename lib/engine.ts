@@ -68,7 +68,7 @@ export class AstraEngine {
   private onLobbyJoin(socket: socketIO.Socket, player: Player, payload: any) {
     const { playerManager, socketManager, lobbyManager } = this;
 
-    const { lobbyId } = payload;
+    const { lobbyId } = payload || {};
     let lobby = lobbyManager.join(player, lobbyId);
 
     loggers.lobby("lobby    joined", lobby.id, player.data.username);

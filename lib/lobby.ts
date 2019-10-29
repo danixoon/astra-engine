@@ -19,14 +19,6 @@ export abstract class Lobby<T = any, K = any> {
   readonly createLobbyState: () => T = () => ({} as T);
   readonly createPlayerState: () => K = () => ({} as K);
 
-  getLobbyState = () => {
-    return this._lobbyState;
-  };
-
-  getPlayerState = (player: Player) => {
-    return this._playerState.get(player.id);
-  };
-
   mapPlayerState = (cb: (p: Player, state: SyncState<K>) => void) => {
     this.players.forEach(p => {
       const s = this.getPlayerState(p);
@@ -35,11 +27,42 @@ export abstract class Lobby<T = any, K = any> {
     });
   };
 
+  private timers: Map<string, NodeJS.Timeout> = new Map();
+  protected setTimeout = (cb: () => void, ms: number) => {
+    const id = "t" + generateId();
+    const timeout = setTimeout(() => {
+      cb();
+      this.clearTimer(id);
+    }, ms);
+    this.timers.set(id, timeout);
+    return timeout;
+  };
+  protected setInterval = (cb: () => void, ms: number) => {
+    const id = "i" + generateId();
+    const timeout = setInterval(() => cb(), ms);
+    this.timers.set(id, timeout);
+    return timeout;
+  };
+  protected clearTimer = (id: string) => {
+    const timer = this.timers.get(id);
+    if (!timer) return;
+    if (id.startsWith("t")) clearTimeout(timer);
+    else if (id.startsWith("i")) clearInterval(timer);
+  };
+
+  getLobbyState = () => {
+    return this._lobbyState;
+  };
+
+  getPlayerState = (player: Player) => {
+    return this._playerState.get(player.id);
+  };
+
   private _lobbyState: SyncState<T> = new SyncState<any>({});
   private _playerState: Map<string, SyncState<K>> = new Map();
 
   private _initialized = false;
-  get initialized() {
+  get isInitialized() {
     return this._initialized;
   }
 
@@ -70,12 +93,10 @@ export abstract class Lobby<T = any, K = any> {
     switch (event) {
       case "lobby.joined":
         this.playerJoined(player);
-
         this.onJoined(player);
         break;
       case "lobby.leave":
         this.playerLeaved(player);
-
         this.onLeaved(player);
         break;
       case "lobby.command":
@@ -84,14 +105,13 @@ export abstract class Lobby<T = any, K = any> {
       case "lobby.dispose":
         this.lobbyDispose();
         this.onDisposed();
-
         break;
     }
   }
 
   private playerJoined(player: Player) {
     // Инициализируем лобби, когда первый игрок подключается в него
-    if (!this.initialized) this.init();
+    if (!this.isInitialized) this.init();
 
     let state = this._playerState.get(player.id);
 
@@ -100,37 +120,17 @@ export abstract class Lobby<T = any, K = any> {
       state = new SyncState(pState);
       this._playerState.set(player.id, state);
     }
-
-    // state.on("state.change", (action: string, changes: StatePartial) => {
-    //   if (!state) throw "state is not initialized";
-    //   this.playerStateChange(player, action, changes);
-    // });
-
-    // this.send(player, "lobby.players")
-    // НЕНУЖНЫ КОНТРОЛЬ РАЗРАБАМ
-    // state
-    //   .modify()
-    //   .public(state.data)
-    //   .apply();
-    // this._lobbyState
-    //   .modify()
-    //   .public(this._lobbyState.data)
-    //   .apply();
   }
   private playerLeaved(player: Player) {
     const state = this._playerState.get(player.id);
     if (!state) throw "WTF THIS IS THE BUG.";
-
-    // state.disable("state.change");
-    // Если надо, чтобы состояние игрока в лобби не сохранялось - раскомментить
-    //this._playerState.delete(player.id);
-
-    // state.on("state.change", (action: string, changes: StatePartial) => {
-    //   this.playerStateChange(player, action, changes);
-    // });
   }
   private lobbyDispose() {
-    // this._lobbyState.disable();
+    this.timers.forEach((v, k) => {
+      this.clearTimer(k);
+    });
+    // delete this.players;
+    // delete this.timers;
   }
 
   protected onInit() {}
@@ -140,7 +140,7 @@ export abstract class Lobby<T = any, K = any> {
   protected onDisposed() {}
 
   private init() {
-    if (this.initialized) throw "lobby already initialized";
+    if (this.isInitialized) throw "lobby already initialized";
 
     this._initialized = true;
     const lState = this.createLobbyState();
@@ -157,6 +157,12 @@ export abstract class Lobby<T = any, K = any> {
     // loggers.lobby("lobby initialized", "lobby-" + this.id);
     this.onInit();
   }
+}
+
+export class EventLobby<T = any, K = any> extends Lobby<T, K> {
+  // private playerEmitters: Map<Player, EventEmitter> = new Map();
+  // getPlayerEmitter = (player: Player): EventEmitter => {};
+  // getLobbyEmiiter = () => {};
 }
 
 export class AstraLobbyManager extends EventEmitter {
