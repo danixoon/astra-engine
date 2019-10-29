@@ -1,6 +1,6 @@
 import * as socketIO from "socket.io-client";
 import * as socketIOServer from "socket.io";
-import { AstraEngine } from "../../lib/engine";
+import { AstraEngine } from "../../lib";
 import * as express from "express";
 import { TestLobby } from "./game";
 
@@ -10,6 +10,8 @@ export function start() {
   const server = app.listen(port, () => `server listening at ${port} port`);
   const io = socketIOServer.listen(server);
   const engine = new AstraEngine(io, TestLobby);
+
+  // engine.listen();
 }
 
 const command = (io: SocketIOClient.Socket, command: string, awaitCommand?: string, payload?: any) => {

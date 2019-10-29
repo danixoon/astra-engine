@@ -1,6 +1,7 @@
 import { ILobbyPlugin } from "..";
 import { generateId } from "../utils";
 
+/**Плагин безопасного таймера в пределах лобби */
 export class TimerPlugin implements ILobbyPlugin {
   beforeEvent() {}
   afterEvent(e: string) {
@@ -11,20 +12,21 @@ export class TimerPlugin implements ILobbyPlugin {
     });
   }
   public timers: Map<string, NodeJS.Timeout> = new Map();
-  public setTimeout = (cb: () => void, ms: number) => {
+  /**Устанавливает таймаут на ms секунд */
+  public setTimeout = (cb: () => void, ms: number): string => {
     const id = "t" + generateId();
     const timeout = setTimeout(() => {
       cb();
       this.clearTimer(id);
     }, ms);
     this.timers.set(id, timeout);
-    return timeout;
+    return id;
   };
-  public setInterval = (cb: () => void, ms: number) => {
+  public setInterval = (cb: () => void, ms: number): string => {
     const id = "i" + generateId();
     const timeout = setInterval(() => cb(), ms);
     this.timers.set(id, timeout);
-    return timeout;
+    return id;
   };
   public clearTimer = (id: string) => {
     const timer = this.timers.get(id);

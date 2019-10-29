@@ -6,9 +6,9 @@ import { AstraLobbyManager, Lobby, LobbyConstructor } from "./lobby";
 import { loggers } from "./utils";
 
 export class AstraEngine {
-  private socketManager: AstraSocketManager;
-  private lobbyManager: AstraLobbyManager;
-  private playerManager: AstraPlayerManager;
+  readonly socketManager: AstraSocketManager;
+  readonly lobbyManager: AstraLobbyManager;
+  readonly playerManager: AstraPlayerManager;
 
   private wrapSocket(func: (...args: any[]) => any) {
     return async (socket: socketIO.Socket, player: Player, payload: any = {}, ...socketArgs: any[]) => {
@@ -73,15 +73,9 @@ export class AstraEngine {
 
     loggers.lobby("lobby    joined", lobby.id, player.data.username);
 
-    // const joinData =
-    // socketManager.command(lobby.id, "lobby.joined", null, { lobbyId: lobby.id, playerId: player.id });
     socketManager.joinToLobby(player, lobby.id);
     socketManager.command(lobby.id, "lobby.joined", null, { lobbyId: lobby.id, playerId: player.id, playerIds: lobby.players.map(p => p.id) });
 
-    // lobby.players.forEach(async p => {
-    //   if (p.id !== player.id) socketManager.command(p.id, "lobby.joined", player.data.username, { lobbyId: lobby.id, playerId: player.id });
-    //   else socketManager.command(p.id, "lobby.joined", player.data.username, { lobbyId: lobby.id, playerId: player.id, playerIds: [lobby.players.map(p => p.id)] });
-    // });
     // НЕБОЛЬШОЙ КОСТЫЛЬ С ПОДПИСКОЙ НА СОКЕТЫ
     lobby.event("lobby.joined", player);
   }
@@ -116,17 +110,8 @@ export class AstraEngine {
     socketManager.command(lobby.id, action, "lobby-" + lobby.id, payload); //command(player.socket.id, action, payload);
   }
 
-  // private onLobbyDisposed(players: Player[]) {}
-
-  constructor(io: socketIO.Server, defaultLobbyType: LobbyConstructor) {
-    const socketManager = new AstraSocketManager(io),
-      lobbyManager = new AstraLobbyManager(defaultLobbyType),
-      playerManager = new AstraPlayerManager();
-
-    this.socketManager = socketManager;
-    this.lobbyManager = lobbyManager;
-    this.playerManager = playerManager;
-
+  private listen = () => {
+    const { socketManager, lobbyManager } = this;
     // Когда сокет коннектится, но ещё не прошёл аутентификацию
     socketManager.on("socket.connected", this.wrapSocket((socket, username) => this.onSocketConnected(socket, username)));
     // Когда сокет дисконнектится из-за того, что не прошёл аутентификацию
@@ -144,6 +129,23 @@ export class AstraEngine {
     lobbyManager.on("lobby.command", (player: Player, action: string, payload: any) => this.onLobbyCommand(player, action, payload));
     // Когда команда идёт лобби -> игроки
     lobbyManager.on("lobby.broadcast", (lobby: Lobby, action: string, payload: any) => this.onLobbyBroadcast(lobby, action, payload));
+  };
+
+  // disable = () => {
+  //   this.lobbyManager.removeAllListeners();
+  //   this.socketManager.removeAllListeners();
+  // };
+
+  constructor(io: socketIO.Server, defaultLobbyType: LobbyConstructor) {
+    const socketManager = new AstraSocketManager(io),
+      lobbyManager = new AstraLobbyManager(defaultLobbyType),
+      playerManager = new AstraPlayerManager();
+
+    this.socketManager = socketManager;
+    this.lobbyManager = lobbyManager;
+    this.playerManager = playerManager;
+
+    this.listen();
   }
 }
 

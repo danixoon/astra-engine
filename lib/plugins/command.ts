@@ -1,6 +1,7 @@
 import { ILobbyPlugin } from "..";
 import { Player } from "../player";
 import { EventEmitter } from "events";
+import { LobbyEvent } from "../lobby";
 
 export class CommandPlugin implements ILobbyPlugin {
   private emitter: EventEmitter = new EventEmitter();
@@ -16,7 +17,7 @@ export class CommandPlugin implements ILobbyPlugin {
   };
 
   beforeEvent() {}
-  afterEvent(e: string, player: Player, action: string, payload?: any) {
+  afterEvent(e: LobbyEvent, player: Player, action: string, payload?: any) {
     if (e !== "lobby.command") return;
     this.emitter.emit(action, player, payload);
   }

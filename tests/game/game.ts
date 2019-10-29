@@ -26,6 +26,9 @@ export class TestLobby extends Lobby {
         const c = ls.modify(s => ({ count: s.count + 1 })).apply();
         this.command(player, "test.state.success", { count: c.count, randomId });
       })
+      .on("game.ping", (p, { randomId }) => {
+        this.command(p, "game.pong", Date.now());
+      })
       .on("test.timer", (player, payload) => {
         const randomId = payload.randomId;
         let count = 0;

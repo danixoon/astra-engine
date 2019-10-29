@@ -33,9 +33,13 @@ const createCommand: <T extends ISocketCommand>(action: string, payload?: any) =
   return command;
 };
 
-// const;
+type SocketAction = "socket.connected" | "socket.disconnected";
+type PlayerAction = "player.disconnected" | "player.command";
+type LobbyAction = "lobby.join" | "lobby.leave";
+type SocketManagerEventType = SocketAction | PlayerAction | LobbyAction;
 
-export class AstraSocketManager extends EventEmitter {
+export class AstraSocketManager {
+  private emitter: EventEmitter = new EventEmitter();
   private io: socketIO.Server;
   private comparers: ICommandComparer = {
     connection(socket: socketIO.Socket) {
@@ -47,7 +51,6 @@ export class AstraSocketManager extends EventEmitter {
   };
 
   constructor(io: socketIO.Server) {
-    super();
     this.io = io;
 
     io.on("connect", async socket => {
@@ -70,6 +73,26 @@ export class AstraSocketManager extends EventEmitter {
       // this.onConnection(socket);
     });
   }
+
+  public on = (e: SocketManagerEventType, cb: (...args: any[]) => void) => {
+    this.emitter.on(e, cb);
+    return this;
+  };
+
+  public once = (e: SocketManagerEventType, cb: (...args: any[]) => void) => {
+    this.emitter.once(e, cb);
+    return this;
+  };
+
+  public removeAllListeners = (e?: SocketManagerEventType) => {
+    this.emitter.removeAllListeners(e);
+    return this;
+  };
+
+  public off = (e: SocketManagerEventType, cb: (...args: any[]) => void) => {
+    this.emitter.off(e, cb);
+    return this;
+  };
 
   private async compare(command: any, ...comparerResult: any[]) {
     comparerResult.unshift(command);
@@ -129,11 +152,11 @@ export class AstraSocketManager extends EventEmitter {
   }
 
   private onSocketAction(action: string, socket: socketIO.Socket, ...args: any[]) {
-    this.emit(action, socket, ...args);
+    this.emitter.emit(action, socket, ...args);
   }
 
   private onPlayerAction(action: string, player: Player, ...args: any[]) {
-    this.emit(action, player.socket, player, ...args);
+    this.emitter.emit(action, player.socket, player, ...args);
   }
 
   // private async onConnection(socket: socketIO.Socket) {}

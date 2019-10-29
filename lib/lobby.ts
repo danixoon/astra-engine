@@ -122,7 +122,10 @@ export abstract class Lobby implements ILobby {
   }
 }
 
-export class AstraLobbyManager extends EventEmitter {
+type LobbyManagerEventType = "lobby.broadcast" | "lobby.command";
+
+export class AstraLobbyManager {
+  private emitter: EventEmitter = new EventEmitter();
   private lobbies: Map<string, Lobby> = new Map();
   private lobbiesQueue: string[] = [];
   private defaultLobbyType: LobbyConstructor;
@@ -130,9 +133,24 @@ export class AstraLobbyManager extends EventEmitter {
   private connections: Map<string, Lobby> = new Map();
 
   constructor(defaultLobbyType: LobbyConstructor) {
-    super();
     this.defaultLobbyType = defaultLobbyType;
   }
+
+  public on = (e: LobbyManagerEventType, cb: (...args: any[]) => void) => {
+    this.emitter.on(e, cb);
+  };
+
+  public once = (e: LobbyManagerEventType, cb: (...args: any[]) => void) => {
+    this.emitter.once(e, cb);
+  };
+
+  public removeAllListeners = (e?: LobbyManagerEventType) => {
+    this.emitter.removeAllListeners(e);
+  };
+
+  public off = (e: LobbyManagerEventType, cb: (...args: any[]) => void) => {
+    this.emitter.off(e, cb);
+  };
 
   public getLobby = mapValueChecker<Lobby>(this.lobbies, id => ({
     exclude: `lobby with id <${id}> not exists`,
@@ -218,11 +236,11 @@ export class AstraLobbyManager extends EventEmitter {
   }
 
   private respondCommand = (player: Player, action: string, payload?: any) => {
-    this.emit("lobby.command", player, action, payload);
+    this.emitter.emit("lobby.command", player, action, payload);
   };
 
   private broadcastCommand = (lobby: Lobby, action: string, payload?: any) => {
-    this.emit("lobby.broadcast", lobby, action, payload);
+    this.emitter.emit("lobby.broadcast", lobby, action, payload);
   };
 
   // Метод, создающий лобби
