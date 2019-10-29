@@ -2,7 +2,6 @@ import * as socketIO from "socket.io-client";
 import * as socketIOServer from "socket.io";
 import { AstraEngine } from "../../lib/engine";
 import * as express from "express";
-import * as path from "path";
 import { TestLobby } from "../game/game";
 
 export function start() {
@@ -36,12 +35,16 @@ const command = (io: SocketIOClient.Socket, command: string, awaitCommand?: stri
   });
 };
 
-const init = async () => {
+const test = async () => {
   start();
   const io = socketIO("ws://localhost:5001", { query: { username: "poopa" }, transports: ["websocket"], upgrade: false });
   await command(io, "lobby.join", "lobby.joined");
+  await command(io, "test.state", "test.stated");
   await command(io, "test.timer", "fuck.it");
   await command(io, "lobby.leave", "lobby.leaved");
+  console.log("all tests passed!");
+
+  process.exit();
 };
 
-init();
+test();

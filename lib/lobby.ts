@@ -2,7 +2,6 @@ import { generateId, mapValueChecker, loggers } from "./utils";
 import { Player } from "./player";
 import { EventEmitter } from "events";
 import { StatePartial, SyncState } from "./state";
-import { TimerPlugin } from "./plugins/timer";
 
 export type StateChangeMapper<T> = (p: StatePartial<T>, s: T) => any;
 export type RespondCommand<T> = (arg: T, action: string, payload?: any) => void;
@@ -11,8 +10,8 @@ export type LobbyConstructor<T = any> = new (id: string, send: RespondCommand<Pl
 export type LobbyEvent = "lobby.init" | "lobby.joined" | "lobby.command" | "lobby.leaved" | "lobby.dispose";
 
 export interface ILobbyPlugin {
-  beforeEvent(e: string, ...args: any[]): void;
-  afterEvent(e: string, ...args: any[]): void;
+  beforeEvent(e: LobbyEvent, ...args: any[]): void;
+  afterEvent(e: LobbyEvent, ...args: any[]): void;
 }
 
 export interface ILobby<T, K> {
@@ -33,13 +32,7 @@ export interface ILobby<T, K> {
 }
 
 export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
-  // private plugins = new Map<string, ILobbyPlugin>([["timer", timerPlugin]]);
-  private _plugins = {
-    timer: new TimerPlugin()
-  };
-  get plugins() {
-    return { ...this._plugins };
-  }
+  plugins = {};
 
   protected readonly command: RespondCommand<Player>;
   protected readonly broadcast: RespondCommand<Lobby>;
@@ -98,8 +91,8 @@ export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
   event(event: "lobby.command", player: Player, action: string, payload?: any): void;
   event(event: "lobby.joined" | "lobby.leaved", player: Player): void;
   event(event: LobbyEvent, ...args: any[]) {
-    for (let k in this._plugins) {
-      const p = (this._plugins as any)[k] as ILobbyPlugin;
+    for (let k in this.plugins) {
+      const p = (this.plugins as any)[k] as ILobbyPlugin;
       p.beforeEvent(event, ...args);
     }
 
@@ -126,8 +119,8 @@ export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
         break;
     }
 
-    for (let k in this._plugins) {
-      const p = (this._plugins as any)[k] as ILobbyPlugin;
+    for (let k in this.plugins) {
+      const p = (this.plugins as any)[k] as ILobbyPlugin;
       p.afterEvent(event, ...args);
     }
   }
