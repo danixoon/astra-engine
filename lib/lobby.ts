@@ -2,13 +2,45 @@ import { generateId, mapValueChecker, loggers } from "./utils";
 import { Player } from "./player";
 import { EventEmitter } from "events";
 import { StatePartial, SyncState } from "./state";
+import { TimerPlugin } from "./plugins/timer";
 
 export type StateChangeMapper<T> = (p: StatePartial<T>, s: T) => any;
 export type RespondCommand<T> = (arg: T, action: string, payload?: any) => void;
 export type StateChangeCommand<T> = (arg: T, action: string, changes: StatePartial<T>, target?: Player[]) => void;
 export type LobbyConstructor<T = any> = new (id: string, send: RespondCommand<Player>, broadcast: RespondCommand<Lobby>) => T;
+export type LobbyEvent = "lobby.init" | "lobby.joined" | "lobby.command" | "lobby.leaved" | "lobby.dispose";
 
-export abstract class Lobby<T = any, K = any> {
+export interface ILobbyPlugin {
+  beforeEvent(e: string, ...args: any[]): void;
+  afterEvent(e: string, ...args: any[]): void;
+}
+
+export interface ILobby<T, K> {
+  id: string;
+  plugins: { [key: string]: ILobbyPlugin };
+
+  createLobbyState: () => T;
+  createPlayerState: () => K;
+
+  getLobbyState: () => SyncState<T>;
+  getPlayerState: (player: Player) => SyncState<K>;
+
+  isInitialized: boolean;
+  isFull: boolean;
+  isEmpty: boolean;
+
+  event: (e: any, ...args: any[]) => void;
+}
+
+export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
+  // private plugins = new Map<string, ILobbyPlugin>([["timer", timerPlugin]]);
+  private _plugins = {
+    timer: new TimerPlugin()
+  };
+  get plugins() {
+    return { ...this._plugins };
+  }
+
   protected readonly command: RespondCommand<Player>;
   protected readonly broadcast: RespondCommand<Lobby>;
 
@@ -19,7 +51,7 @@ export abstract class Lobby<T = any, K = any> {
   readonly createLobbyState: () => T = () => ({} as T);
   readonly createPlayerState: () => K = () => ({} as K);
 
-  mapPlayerState = (cb: (p: Player, state: SyncState<K>) => void) => {
+  protected mapPlayerState = (cb: (p: Player, state: SyncState<K>) => void) => {
     this.players.forEach(p => {
       const s = this.getPlayerState(p);
       if (!s) throw `state on player ${p.id} does not exists`;
@@ -27,35 +59,12 @@ export abstract class Lobby<T = any, K = any> {
     });
   };
 
-  private timers: Map<string, NodeJS.Timeout> = new Map();
-  protected setTimeout = (cb: () => void, ms: number) => {
-    const id = "t" + generateId();
-    const timeout = setTimeout(() => {
-      cb();
-      this.clearTimer(id);
-    }, ms);
-    this.timers.set(id, timeout);
-    return timeout;
-  };
-  protected setInterval = (cb: () => void, ms: number) => {
-    const id = "i" + generateId();
-    const timeout = setInterval(() => cb(), ms);
-    this.timers.set(id, timeout);
-    return timeout;
-  };
-  protected clearTimer = (id: string) => {
-    const timer = this.timers.get(id);
-    if (!timer) return;
-    if (id.startsWith("t")) clearTimeout(timer);
-    else if (id.startsWith("i")) clearInterval(timer);
-  };
-
   getLobbyState = () => {
     return this._lobbyState;
   };
 
   getPlayerState = (player: Player) => {
-    return this._playerState.get(player.id);
+    return this._playerState.get(player.id) as SyncState<K>;
   };
 
   private _lobbyState: SyncState<T> = new SyncState<any>({});
@@ -85,17 +94,26 @@ export abstract class Lobby<T = any, K = any> {
     return this.players.length === 0;
   }
 
-  event(event: "lobby.dispose"): void;
+  event(event: "lobby.dispose" | "lobby.init"): void;
   event(event: "lobby.command", player: Player, action: string, payload?: any): void;
   event(event: "lobby.joined" | "lobby.leaved", player: Player): void;
-  event(event: string, ...args: any[]) {
+  event(event: LobbyEvent, ...args: any[]) {
+    for (let k in this._plugins) {
+      const p = (this._plugins as any)[k] as ILobbyPlugin;
+      p.beforeEvent(event, ...args);
+    }
+
     const [player, action, payload] = args;
     switch (event) {
+      case "lobby.init":
+        this.lobbyInit();
+        this.onInit();
+        break;
       case "lobby.joined":
         this.playerJoined(player);
         this.onJoined(player);
         break;
-      case "lobby.leave":
+      case "lobby.leaved":
         this.playerLeaved(player);
         this.onLeaved(player);
         break;
@@ -107,11 +125,16 @@ export abstract class Lobby<T = any, K = any> {
         this.onDisposed();
         break;
     }
+
+    for (let k in this._plugins) {
+      const p = (this._plugins as any)[k] as ILobbyPlugin;
+      p.afterEvent(event, ...args);
+    }
   }
 
   private playerJoined(player: Player) {
     // Инициализируем лобби, когда первый игрок подключается в него
-    if (!this.isInitialized) this.init();
+    if (!this.isInitialized) this.event("lobby.init");
 
     let state = this._playerState.get(player.id);
 
@@ -124,14 +147,11 @@ export abstract class Lobby<T = any, K = any> {
   private playerLeaved(player: Player) {
     const state = this._playerState.get(player.id);
     if (!state) throw "WTF THIS IS THE BUG.";
+
+    // Здеся можно убрать данные об состоянии ливнувшего игрока, но не обязательно
+    //this.mapPlayerState
   }
-  private lobbyDispose() {
-    this.timers.forEach((v, k) => {
-      this.clearTimer(k);
-    });
-    // delete this.players;
-    // delete this.timers;
-  }
+  private lobbyDispose() {}
 
   protected onInit() {}
   protected onJoined(player: Player) {}
@@ -139,31 +159,46 @@ export abstract class Lobby<T = any, K = any> {
   protected onCommand(player: Player, action: string, payload: any) {}
   protected onDisposed() {}
 
-  private init() {
+  private lobbyInit() {
     if (this.isInitialized) throw "lobby already initialized";
 
+    // Устанавливаем, что лобби инициализировано
     this._initialized = true;
+    // Создаём состояние лобби
     const lState = this.createLobbyState();
-    // const mapper = lState.mapper || (s => s);
-
+    // Присваиваем состояние
     this._lobbyState = new SyncState(lState);
-
-    // this._lobbyState.on("state.change", (action: string, changes: StatePartial, target: Player[]) => {
-    //   this.lobbyStateChange(this, action, changes, target);
-    // });
-
+    // Логгируем, что инициализировались
     loggers.lobby("lobby initialze", this.id);
-
-    // loggers.lobby("lobby initialized", "lobby-" + this.id);
-    this.onInit();
   }
 }
 
-export class EventLobby<T = any, K = any> extends Lobby<T, K> {
-  // private playerEmitters: Map<Player, EventEmitter> = new Map();
-  // getPlayerEmitter = (player: Player): EventEmitter => {};
-  // getLobbyEmiiter = () => {};
-}
+// export abstract class EventLobby<T = any, K = any, S extends string = any> extends Lobby<T, K> {
+//   private _state: S = "" as S;
+//   private stateEmitter: EventEmitter = new EventEmitter();
+//   get state() {
+//     return this._state;
+//   }
+//   setState = (state: S) => {
+//     this._state = state;
+//     this.stateEmitter.emit(state);
+//   };
+
+//   event(event: "lobby.dispose"): void;
+//   event(event: "lobby.command", player: Player, action: string, payload?: any): void;
+//   event(event: "lobby.joined" | "lobby.leaved", player: Player): void;
+//   event(e: string, ...args: any[]) {
+//     (super.event as any)(e, ...args);
+//     if (e !== "lobby.command") return;
+//   }
+
+//   // onState = (state: S, cb: (s: S) => void) => {
+//   //   this.stateEmitter.on(state, cb);
+//   // };
+//   // onState = (state: S, cb: (s: S) => void) => {
+//   //   this.stateEmitter.on(state, cb);
+//   // };
+// }
 
 export class AstraLobbyManager extends EventEmitter {
   private lobbies: Map<string, Lobby> = new Map();
