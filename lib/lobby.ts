@@ -1,11 +1,8 @@
 import { generateId, mapValueChecker, loggers } from "./utils";
 import { Player } from "./player";
 import { EventEmitter } from "events";
-import { StatePartial, SyncState } from "./state";
 
-export type StateChangeMapper<T> = (p: StatePartial<T>, s: T) => any;
 export type RespondCommand<T> = (arg: T, action: string, payload?: any) => void;
-export type StateChangeCommand<T> = (arg: T, action: string, changes: StatePartial<T>, target?: Player[]) => void;
 export type LobbyConstructor<T = any> = new (id: string, send: RespondCommand<Player>, broadcast: RespondCommand<Lobby>) => T;
 export type LobbyEvent = "lobby.init" | "lobby.joined" | "lobby.command" | "lobby.leaved" | "lobby.dispose";
 
@@ -14,15 +11,9 @@ export interface ILobbyPlugin {
   afterEvent(e: LobbyEvent, ...args: any[]): void;
 }
 
-export interface ILobby<T, K> {
+export interface ILobby {
   id: string;
   plugins: { [key: string]: ILobbyPlugin };
-
-  createLobbyState: () => T;
-  createPlayerState: () => K;
-
-  getLobbyState: () => SyncState<T>;
-  getPlayerState: (player: Player) => SyncState<K>;
 
   isInitialized: boolean;
   isFull: boolean;
@@ -31,7 +22,7 @@ export interface ILobby<T, K> {
   event: (e: any, ...args: any[]) => void;
 }
 
-export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
+export abstract class Lobby implements ILobby {
   plugins = {};
 
   protected readonly command: RespondCommand<Player>;
@@ -41,27 +32,8 @@ export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
 
   readonly maxPlayers: number = 2;
 
-  readonly createLobbyState: () => T = () => ({} as T);
-  readonly createPlayerState: () => K = () => ({} as K);
-
-  protected mapPlayerState = (cb: (p: Player, state: SyncState<K>) => void) => {
-    this.players.forEach(p => {
-      const s = this.getPlayerState(p);
-      if (!s) throw `state on player ${p.id} does not exists`;
-      cb(p, s);
-    });
-  };
-
-  getLobbyState = () => {
-    return this._lobbyState;
-  };
-
-  getPlayerState = (player: Player) => {
-    return this._playerState.get(player.id) as SyncState<K>;
-  };
-
-  private _lobbyState: SyncState<T> = new SyncState<any>({});
-  private _playerState: Map<string, SyncState<K>> = new Map();
+  // private _lobbyState: SyncState<T> = new SyncState<any>({});
+  // private _playerState: Map<string, SyncState<K>> = new Map();
 
   private _initialized = false;
   get isInitialized() {
@@ -128,20 +100,8 @@ export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
   private playerJoined(player: Player) {
     // Инициализируем лобби, когда первый игрок подключается в него
     if (!this.isInitialized) this.event("lobby.init");
-
-    let state = this._playerState.get(player.id);
-
-    if (!state) {
-      const pState = this.createPlayerState();
-      state = new SyncState(pState);
-      this._playerState.set(player.id, state);
-    }
   }
   private playerLeaved(player: Player) {
-    const state = this._playerState.get(player.id);
-    if (!state) throw "WTF THIS IS THE BUG.";
-
-    // Здеся можно убрать данные об состоянии ливнувшего игрока, но не обязательно
     //this.mapPlayerState
   }
   private lobbyDispose() {}
@@ -157,41 +117,10 @@ export abstract class Lobby<T = any, K = any> implements ILobby<T, K> {
 
     // Устанавливаем, что лобби инициализировано
     this._initialized = true;
-    // Создаём состояние лобби
-    const lState = this.createLobbyState();
-    // Присваиваем состояние
-    this._lobbyState = new SyncState(lState);
     // Логгируем, что инициализировались
     loggers.lobby("lobby initialze", this.id);
   }
 }
-
-// export abstract class EventLobby<T = any, K = any, S extends string = any> extends Lobby<T, K> {
-//   private _state: S = "" as S;
-//   private stateEmitter: EventEmitter = new EventEmitter();
-//   get state() {
-//     return this._state;
-//   }
-//   setState = (state: S) => {
-//     this._state = state;
-//     this.stateEmitter.emit(state);
-//   };
-
-//   event(event: "lobby.dispose"): void;
-//   event(event: "lobby.command", player: Player, action: string, payload?: any): void;
-//   event(event: "lobby.joined" | "lobby.leaved", player: Player): void;
-//   event(e: string, ...args: any[]) {
-//     (super.event as any)(e, ...args);
-//     if (e !== "lobby.command") return;
-//   }
-
-//   // onState = (state: S, cb: (s: S) => void) => {
-//   //   this.stateEmitter.on(state, cb);
-//   // };
-//   // onState = (state: S, cb: (s: S) => void) => {
-//   //   this.stateEmitter.on(state, cb);
-//   // };
-// }
 
 export class AstraLobbyManager extends EventEmitter {
   private lobbies: Map<string, Lobby> = new Map();
@@ -199,16 +128,6 @@ export class AstraLobbyManager extends EventEmitter {
   private defaultLobbyType: LobbyConstructor;
   // id игрока -> id лобби
   private connections: Map<string, Lobby> = new Map();
-
-  // public getLobby(id: string, required?: boolean) {
-  //   const lobby = this.lobbies.get(id);
-  //   if (required !== undefined) {
-  //     if (required && !lobby) throw `lobby with id <${id}> not exists`;
-  //     if (!required && lobby) throw `lobby with id <${id}> already exists`;
-  //   }
-
-  //   return lobby;
-  // }
 
   constructor(defaultLobbyType: LobbyConstructor) {
     super();

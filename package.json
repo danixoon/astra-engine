@@ -8,7 +8,7 @@
     "build": "tsc",
     "test": "jest --detectOpenHandles --forceExit --runInBand",
     "prepare": "npm run build",
-    "game": "node --inspect=5858 -r ts-node/register ./tests/game/init.ts",
+    "game": "node --inspect=5858 -r ts-node/register ./tests/game/test.ts",
     "game:watch": "nodemon --ext ts --watch tests/**/* --exec yarn game",
     "coverage": "jest --coverage"
   },

@@ -1,31 +1,38 @@
 import * as _ from "lodash";
 import { Lobby } from "../../lib/lobby";
 import { Player } from "../../lib/player";
-import { StatePartial } from "../../lib/state";
-import { TimerPlugin, CommandPlugin } from "../../lib";
+import { TimerPlugin, CommandPlugin, StatePlugin } from "../../lib";
 
-export interface ITestLobbyState {}
-export interface ITestPlayerState {}
+export interface ILobbyState {
+  count: number;
+}
+export interface IPlayerState {}
 
-export class TestLobby extends Lobby<ITestLobbyState, ITestPlayerState> {
+export class TestLobby extends Lobby {
   plugins = {
     timer: new TimerPlugin(),
-    command: new CommandPlugin()
+    command: new CommandPlugin(),
+    state: new StatePlugin<ILobbyState, IPlayerState>(() => ({ count: 0 }), () => ({}))
   };
   maxPlayers = 2;
   onInit() {
-    this.plugins.command
-      .on("test.state", (pl, { randomId }) => {
-        console.log("statttttttttte!");
-        this.command(pl, "test.stated", { randomId });
+    const { state, command, timer } = this.plugins;
+    command
+      .on("test.command", (pl, { randomId }) => {
+        this.command(pl, "test.command.success", { randomId });
+      })
+      .on("test.state", (player, { randomId }) => {
+        const ls = state.getLobbyState();
+        const c = ls.modify(s => ({ count: s.count + 1 })).apply();
+        this.command(player, "test.state.success", { count: c.count, randomId });
       })
       .on("test.timer", (player, payload) => {
         const randomId = payload.randomId;
         let count = 0;
 
-        this.plugins.timer.setInterval(() => {
+        timer.setInterval(() => {
           console.log("owo");
-          if (++count % 5 === 0) this.command(player, "fuck.it", { randomId });
+          if (++count % 5 === 0) this.command(player, "test.timer.success", { randomId });
         }, 500);
       });
   }
