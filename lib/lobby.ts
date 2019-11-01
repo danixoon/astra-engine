@@ -59,14 +59,25 @@ export abstract class Lobby implements ILobby {
     return this.players.length === 0;
   }
 
+  /** Перебирает все плагины и вызывает коллбек
+   * @param cb функция коллбека
+   **/
+  private forEachPlugin(cb: (plugin: ILobbyPlugin) => void) {
+    for (let k in this.plugins) {
+      const p = (this.plugins as any)[k] as ILobbyPlugin;
+      cb(p);
+    }
+  }
+
   event(event: "lobby.dispose" | "lobby.init"): void;
   event(event: "lobby.command", player: Player, action: string, payload?: any): void;
   event(event: "lobby.joined" | "lobby.leaved", player: Player): void;
   event(event: LobbyEvent, ...args: any[]) {
-    for (let k in this.plugins) {
-      const p = (this.plugins as any)[k] as ILobbyPlugin;
-      p.beforeEvent(event, ...args);
-    }
+    // for (let k in this.plugins) {
+    //   const p = (this.plugins as any)[k] as ILobbyPlugin;
+    //   p.beforeEvent(event, ...args);
+    // }
+    this.forEachPlugin(p => p.beforeEvent(event, ...args));
 
     const [player, action, payload] = args;
     switch (event) {
@@ -91,19 +102,17 @@ export abstract class Lobby implements ILobby {
         break;
     }
 
-    for (let k in this.plugins) {
-      const p = (this.plugins as any)[k] as ILobbyPlugin;
-      p.afterEvent(event, ...args);
-    }
+    this.forEachPlugin(p => p.afterEvent(event, ...args));
   }
 
+  /** Вызывается при присоединении игрока в лобби */
   private playerJoined(player: Player) {
     // Инициализируем лобби, когда первый игрок подключается в него
     if (!this.isInitialized) this.event("lobby.init");
   }
-  private playerLeaved(player: Player) {
-    //this.mapPlayerState
-  }
+  /** Вызывается при покидании игрока из лобби */
+  private playerLeaved(player: Player) {}
+  /** Вызывается при уничтожении лобби */
   private lobbyDispose() {}
 
   protected onInit() {}

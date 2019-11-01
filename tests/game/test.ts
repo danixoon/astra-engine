@@ -46,6 +46,8 @@ const test = async () => {
 
   for (let i = 0; i < 3; i++) console.log(`sync count: ${((await changeState()) as any).count}`);
 
+  // await command(io, "test.ping")
+
   await command(io, "test.timer", "test.timer.success");
   await command(io, "lobby.leave", "lobby.leaved");
   console.log("all tests passed!");

@@ -67,12 +67,15 @@ describe("init test", () => {
   });
 
   it("ping command", async done => {
+    awaitCommand(io, "test.state.success").then((c: any) => {
+      io.emit("command", "game.ping");
+    });
     awaitCommand(io, "game.pong").then((c: any) => {
-      console.log("ping score: " + c.score);
+      console.log(`ping: ${Date.now() - c} ms`);
       done();
     });
 
-    io.emit("command", "game.ping");
+    io.emit("command", "test.state");
   });
 
   it("leave lobby", async done => {

@@ -2,7 +2,6 @@ import { ILobbyPlugin } from "..";
 import { Player } from "../player";
 import { EventEmitter } from "events";
 import { LobbyEvent } from "../lobby";
-import { stat } from "fs";
 
 export type StatePartial<T = any> = {
   [P in keyof T]?: T[P];
@@ -106,6 +105,10 @@ export class StatePlugin<T, K, S extends string = any> implements ILobbyPlugin {
   beforeEvent() {}
   afterEvent(e: LobbyEvent, player: Player) {
     switch (e) {
+      case "lobby.dispose": {
+        this.emitter.removeAllListeners();
+        break;
+      }
       case "lobby.joined": {
         let state = this.playerState.get(player.id);
 
