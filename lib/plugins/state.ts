@@ -2,6 +2,7 @@ import { ILobbyPlugin } from "..";
 import { Player } from "../player";
 import { EventEmitter } from "events";
 import { LobbyEvent } from "../lobby";
+import { stat } from "fs";
 
 export type StatePartial<T = any> = {
   [P in keyof T]?: T[P];
@@ -55,33 +56,60 @@ export class SyncState<T = any> {
   }
 }
 
-export class StatePlugin<T, K> implements ILobbyPlugin {
-  private lobbyState: SyncState<T> = new SyncState<any>({});
-  private playerState: Map<string, SyncState<K>> = new Map();
+type StateType<T> = { state: T };
 
-  private createLobbyState: () => T = () => ({} as T);
-  private createPlayerState: () => K = () => ({} as K);
+export class StatePlugin<T, K, S extends string = any> implements ILobbyPlugin {
+  private lobbyState: SyncState<T & StateType<S>> = new SyncState<any>({});
+  private playerState: Map<string, SyncState<K & StateType<S>>> = new Map();
 
-  constructor(createLobbyState: () => T, createPlayerState: () => K) {
+  private createLobbyState: () => T & StateType<S> = () => ({ state: "" } as T & StateType<S>);
+  private createPlayerState: () => K & StateType<S> = () => ({ state: "" } as K & StateType<S>);
+
+  constructor(createLobbyState: () => T & StateType<S>, createPlayerState: () => K & StateType<S>) {
     this.createLobbyState = createLobbyState;
     this.createPlayerState = createPlayerState;
   }
 
-  // protected mapPlayerState = (cb: (p: Player, state: SyncState<K>) => void) => {
-  //   this.players.forEach(p => {
-  //     const s = this.getPlayerState(p);
-  //     if (!s) throw `state on player ${p.id} does not exists`;
-  //     cb(p, s);
-  //   });
-  // };
+  public isState = (state: S | S[], player?: Player) => (cb?: () => void): boolean => {
+    const stateObject = player ? this.getPlayerState(player) : this.getLobbyState();
+    const stateType = stateObject.data.state;
+
+    const result = (Array.isArray(state) && state.includes(stateType)) || stateType === state;
+    if (result && typeof cb === "function") cb();
+    return result;
+  };
 
   getLobbyState = () => {
     return this.lobbyState;
   };
 
   getPlayerState = (player: Player) => {
-    return this.playerState.get(player.id) as SyncState<K>;
+    return this.playerState.get(player.id) as SyncState<K & StateType<S>>;
   };
+
+  // isLobbyState = (state: S | S[], cb: () => void) => {
+  //   const lobbyState = this.getLobbyState();
+  //   const stateType = lobbyState.data.state;
+  //   if ((Array.isArray(state) && state.includes(stateType)) || stateType === state) {
+  //     cb();
+  //   }
+  // };
+
+  // isPlayerState = (state: S | S[], cb: () => void) => {
+  //   const lobbyState = this.getLobbyState();
+  //   const stateType = lobbyState.data.state;
+  //   if ((Array.isArray(state) && state.includes(stateType)) || stateType === state) {
+  //     cb();
+  //   }
+  // };
+
+  // when = (state: S | "*", cb: (player: Player, payload?: any) => void) => (player: Player, payload?: any) => {
+  //   if (state === "*") cb(player, payload);
+  //   else {
+  //     const s = player ? this.getPlayerState(player) : this.getLobbyState();
+  //     if (s.data.state === state) cb(player, payload);
+  //   }
+  // };
 
   beforeEvent() {}
   afterEvent(e: LobbyEvent, player: Player) {

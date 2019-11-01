@@ -8,26 +8,33 @@ export interface ILobbyState {
 }
 export interface IPlayerState {}
 
+type GameState = "game" | "lobby" | "fuck_you";
+
 export class TestLobby extends Lobby {
   plugins = {
     timer: new TimerPlugin(),
     command: new CommandPlugin(),
-    state: new StatePlugin<ILobbyState, IPlayerState>(() => ({ count: 0 }), () => ({}))
+    state: new StatePlugin<ILobbyState, IPlayerState, GameState>(() => ({ state: "game", count: 0 }), () => ({ state: "game" }))
   };
   maxPlayers = 2;
   onInit() {
     const { state, command, timer } = this.plugins;
+
     command
       .on("test.command", (pl, { randomId }) => {
-        this.command(pl, "test.command.success", { randomId });
+        state.isState("fuck_you", pl)(() => {
+          this.command(pl, "test.command.success", { randomId });
+        });
       })
+
       .on("test.state", (player, { randomId }) => {
         const ls = state.getLobbyState();
         const c = ls.modify(s => ({ count: s.count + 1 })).apply();
         this.command(player, "test.state.success", { count: c.count, randomId });
       })
       .on("game.ping", (p, { randomId }) => {
-        this.command(p, "game.pong", Date.now());
+        // state.isState("lobby")(() => {
+        // })
       })
       .on("test.timer", (player, payload) => {
         const randomId = payload.randomId;
