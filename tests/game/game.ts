@@ -8,7 +8,7 @@ export interface ILobbyState {
 }
 export interface IPlayerState {}
 
-type GameState = "game" | "lobby" | "fuck_you";
+type GameState = "game" | "lobby";
 
 export class TestLobby extends Lobby {
   plugins = {
@@ -22,7 +22,7 @@ export class TestLobby extends Lobby {
 
     command
       .on("test.command", (pl, { randomId }) => {
-        state.isState("fuck_you", pl)(() => {
+        state.isState("lobby", pl)(() => {
           this.command(pl, "test.command.success", { randomId });
         });
       })
