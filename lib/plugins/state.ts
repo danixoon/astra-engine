@@ -59,6 +59,7 @@ export class SyncState<T = any> {
 type StateType<T> = { state: T };
 
 export class StatePlugin<T, K, S extends string = any> implements ILobbyPlugin {
+  private emitter: EventEmitter = new EventEmitter();
   private lobbyState: SyncState<T & StateType<S>> = new SyncState<any>({});
   private playerState: Map<string, SyncState<K & StateType<S>>> = new Map();
 
@@ -79,6 +80,21 @@ export class StatePlugin<T, K, S extends string = any> implements ILobbyPlugin {
     return result;
   };
 
+  public setState = (state: S, player?: Player) => {
+    const stateObject = player ? this.getPlayerState(player) : this.getLobbyState();
+    stateObject.data.state = state;
+    this.emitter.emit((player ? "p-" : "l-") + state);
+  };
+
+  public onState = (state: S, player?: Player) => (cb: () => void) => {
+    if (player) this.emitter.on("p-" + state, cb);
+    else this.emitter.on("l-" + state, cb);
+  };
+  public offState = (state: S, player?: Player) => (cb: () => void) => {
+    if (player) this.emitter.off("p-" + state, cb);
+    else this.emitter.off("l-" + state, cb);
+  };
+
   getLobbyState = () => {
     return this.lobbyState;
   };
@@ -86,30 +102,6 @@ export class StatePlugin<T, K, S extends string = any> implements ILobbyPlugin {
   getPlayerState = (player: Player) => {
     return this.playerState.get(player.id) as SyncState<K & StateType<S>>;
   };
-
-  // isLobbyState = (state: S | S[], cb: () => void) => {
-  //   const lobbyState = this.getLobbyState();
-  //   const stateType = lobbyState.data.state;
-  //   if ((Array.isArray(state) && state.includes(stateType)) || stateType === state) {
-  //     cb();
-  //   }
-  // };
-
-  // isPlayerState = (state: S | S[], cb: () => void) => {
-  //   const lobbyState = this.getLobbyState();
-  //   const stateType = lobbyState.data.state;
-  //   if ((Array.isArray(state) && state.includes(stateType)) || stateType === state) {
-  //     cb();
-  //   }
-  // };
-
-  // when = (state: S | "*", cb: (player: Player, payload?: any) => void) => (player: Player, payload?: any) => {
-  //   if (state === "*") cb(player, payload);
-  //   else {
-  //     const s = player ? this.getPlayerState(player) : this.getLobbyState();
-  //     if (s.data.state === state) cb(player, payload);
-  //   }
-  // };
 
   beforeEvent() {}
   afterEvent(e: LobbyEvent, player: Player) {
