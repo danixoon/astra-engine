@@ -55,51 +55,26 @@ export class SyncState<T = any> {
   }
 }
 
-type StateType<T> = { state: T };
-
-export class StatePlugin<T, K, S extends string = any> implements ILobbyPlugin {
+export class StatePlugin<L, P> implements ILobbyPlugin {
   private emitter: EventEmitter = new EventEmitter();
-  private lobbyState: SyncState<T & StateType<S>> = new SyncState<any>({});
-  private playerState: Map<string, SyncState<K & StateType<S>>> = new Map();
+  // private stateEmitter: EventEmitter = new EventEmitter();
+  private lobbyState: SyncState<L> = new SyncState<any>({});
+  private playerState: Map<string, SyncState<P>> = new Map();
 
-  private createLobbyState: () => T & StateType<S> = () => ({ state: "" } as T & StateType<S>);
-  private createPlayerState: () => K & StateType<S> = () => ({ state: "" } as K & StateType<S>);
+  private createLobbyState: () => L = () => ({} as L);
+  private createPlayerState: () => P = () => ({} as P);
 
-  constructor(createLobbyState: () => T & StateType<S>, createPlayerState: () => K & StateType<S>) {
+  constructor(createLobbyState: () => L, createPlayerState: () => P) {
     this.createLobbyState = createLobbyState;
     this.createPlayerState = createPlayerState;
   }
-
-  public isState = (state: S | S[], player?: Player) => (cb?: () => void): boolean => {
-    const stateObject = player ? this.getPlayerState(player) : this.getLobbyState();
-    const stateType = stateObject.data.state;
-
-    const result = (Array.isArray(state) && state.includes(stateType)) || stateType === state;
-    if (result && typeof cb === "function") cb();
-    return result;
-  };
-
-  public setState = (state: S, player?: Player) => {
-    const stateObject = player ? this.getPlayerState(player) : this.getLobbyState();
-    stateObject.data.state = state;
-    this.emitter.emit((player ? "p-" : "l-") + state);
-  };
-
-  public onState = (state: S, player?: Player) => (cb: () => void) => {
-    if (player) this.emitter.on("p-" + state, cb);
-    else this.emitter.on("l-" + state, cb);
-  };
-  public offState = (state: S, player?: Player) => (cb: () => void) => {
-    if (player) this.emitter.off("p-" + state, cb);
-    else this.emitter.off("l-" + state, cb);
-  };
 
   getLobbyState = () => {
     return this.lobbyState;
   };
 
   getPlayerState = (player: Player) => {
-    return this.playerState.get(player.id) as SyncState<K & StateType<S>>;
+    return this.playerState.get(player.id) as SyncState<P>;
   };
 
   beforeEvent() {}

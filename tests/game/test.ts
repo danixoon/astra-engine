@@ -42,13 +42,17 @@ const test = async () => {
   const io = socketIO("ws://localhost:5001", { query: { username: "poopa" }, transports: ["websocket"], upgrade: false });
   await command(io, "lobby.join", "lobby.joined");
   await command(io, "test.command", "test.command.success");
-  const changeState = () => command(io, "test.state", "test.state.success");
 
-  for (let i = 0; i < 3; i++) console.log(`sync count: ${((await changeState()) as any).count}`);
+  await command(io, "state.set", "state.set");
+  await command(io, "player.attack", "player.attack");
 
-  // await command(io, "test.ping")
+  // const changeState = () => command(io, "test.state", "test.state.success");
 
-  await command(io, "test.timer", "test.timer.success");
+  // for (let i = 0; i < 3; i++) console.log(`sync count: ${((await changeState()) as any).count}`);
+
+  // // await command(io, "test.ping")
+
+  // await command(io, "test.timer", "test.timer.success");
   await command(io, "lobby.leave", "lobby.leaved");
   console.log("all tests passed!");
 

@@ -1,58 +1,69 @@
 import * as _ from "lodash";
 import { Lobby } from "../../lib/lobby";
 import { Player } from "../../lib/player";
-import { TimerPlugin, CommandPlugin, StatePlugin } from "../../lib";
+import { TimerPlugin, CommandPlugin, StatePlugin, RouterPlugin, RouterPluginSchema } from "../../lib";
+
+const LobbyState = {
+  game: 1 << 1,
+  lobby: 1 << 2,
+  test: 1 << 3
+};
+
+const PlayerState = {
+  alive: 1 << 1,
+  dead: 1 << 2
+};
 
 export interface ILobbyState {
   count: number;
+  state: number;
 }
-export interface IPlayerState {}
+export interface IPlayerState {
+  state: number;
+}
 
-type GameState = "game" | "lobby";
+const createPlayerState = (): IPlayerState => ({ state: PlayerState.alive });
+const createLobbyState = (): ILobbyState => ({ state: LobbyState.test, count: 0 });
+
+const statePlugin = new StatePlugin<ILobbyState, IPlayerState>(createLobbyState, createPlayerState);
+const timerPlugin = new TimerPlugin();
+const commandPlugin = new CommandPlugin();
 
 export class TestLobby extends Lobby {
+  schema: RouterPluginSchema = {
+    [LobbyState.game]: {
+      [PlayerState.alive]: {
+        "player.attack": (player, payload) => {
+          this.command(player, "player.attack", { randomId: payload.randomId });
+        },
+        "player.move": () => {}
+      },
+      [PlayerState.alive | PlayerState.dead]: {
+        "player.message": () => {}
+      },
+      [RouterPlugin.ANY_STATE]: {
+        "player.pause": () => {}
+      }
+    },
+    [LobbyState.test]: {
+      [RouterPlugin.ANY_STATE]: {
+        "test.command": (player, { randomId }) => {
+          this.command(player, "test.command.success", { randomId });
+        },
+        "state.set": (player, { randomId }) => {
+          this.plugins.state.getLobbyState().data.state = LobbyState.game;
+          this.plugins.state.getPlayerState(player).data.state = PlayerState.alive;
+          this.command(player, "state.set", { randomId });
+        }
+      }
+    }
+  };
+
   plugins = {
-    timer: new TimerPlugin(),
-    command: new CommandPlugin(),
-    state: new StatePlugin<ILobbyState, IPlayerState, GameState>(() => ({ state: "lobby", count: 0 }), () => ({ state: "lobby" }))
+    router: new RouterPlugin(this.schema, statePlugin),
+    timer: timerPlugin,
+    command: commandPlugin,
+    state: statePlugin
   };
   maxPlayers = 2;
-  onInit() {
-    const { state, command, timer } = this.plugins;
-
-    // state.onState("game")(() => {
-    //   console.log("osdwo");
-    // });
-
-    command
-      .on("*", (e, p) => {
-        console.log(`${e} EVENTTTTTT!`);
-      })
-      .on("test.command", (pl, { randomId }) => {
-        state.isState("lobby", pl)(() => {
-          this.command(pl, "test.command.success", { randomId });
-        });
-      })
-
-      .on("test.state", (player, { randomId }) => {
-        const ls = state.getLobbyState();
-        const c = ls.modify(s => ({ count: s.count + 1 })).apply();
-        state.setState("game");
-        this.command(player, "test.state.success", { count: c.count, randomId });
-      })
-      .on("game.ping", (p, { randomId }) =>
-        state.isState("game")(() => {
-          this.command(p, "game.pong", Date.now());
-        })
-      )
-      .on("test.timer", (player, payload) => {
-        const randomId = payload.randomId;
-        let count = 0;
-
-        timer.setInterval(() => {
-          console.log("owo");
-          if (++count % 5 === 0) this.command(player, "test.timer.success", { randomId });
-        }, 500);
-      });
-  }
 }
