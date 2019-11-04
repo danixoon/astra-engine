@@ -3,16 +3,18 @@ import { Lobby } from "../../lib/lobby";
 import { Player } from "../../lib/player";
 import { TimerPlugin, CommandPlugin, StatePlugin, RouterPlugin, RouterPluginSchema } from "../../lib";
 
-const LobbyState = {
-  game: 1 << 1,
-  lobby: 1 << 2,
-  test: 1 << 3
-};
+enum LobbyState {
+  "game" = 1 << 1,
+  "lobby" = 1 << 2,
+  "test" = 1 << 3
+}
 
-const PlayerState = {
-  alive: 1 << 1,
-  dead: 1 << 2
-};
+enum PlayerState {
+  "alive" = 1 << 1,
+  "dead" = 1 << 2
+}
+
+// const StateSet = new Set([{ hi: "owo" }, { yolo: "os" }]);
 
 export interface ILobbyState {
   count: number;
@@ -30,11 +32,11 @@ const timerPlugin = new TimerPlugin();
 const commandPlugin = new CommandPlugin();
 
 export class TestLobby extends Lobby {
-  schema: RouterPluginSchema = {
+  schema: RouterPluginSchema<ILobbyState, IPlayerState> = {
     [LobbyState.game]: {
       [PlayerState.alive]: {
-        "player.attack": (player, payload) => {
-          this.command(player, "player.attack", { randomId: payload.randomId });
+        "player.attack": (player, payload, ps, ls) => {
+          this.command(player, "player.attack", { randomId: payload.randomId, state: PlayerState[ps.data.state] });
         },
         "player.move": () => {}
       },
