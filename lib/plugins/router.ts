@@ -19,20 +19,20 @@ export class RouterPlugin<L extends RooterPluginState, P extends RooterPluginSta
   static ANY_STATE = Number.MAX_SAFE_INTEGER;
   constructor(private schema: RouterPluginSchema<L, P>, private statePlugin: StatePlugin<L, P>) {}
 
-  setState = (stateType: number, player?: Player) => {
+  setState = (stateType: number, player?: Player | null, ...payload: any[]) => {
     let stateObject: SyncState<L | P>;
     if (player) stateObject = this.statePlugin.getPlayerState(player);
     else stateObject = this.statePlugin.getLobbyState();
 
     stateObject.data.state = stateType;
-    this.emitter.emit((player ? "player-" : "lobby-") + stateType);
+    this.emitter.emit((player ? "player-" : "lobby-") + stateType, ...payload);
   };
 
-  onState = (action: "player" | "lobby", stateType: number, cb: () => void) => {
+  onState = (action: "player" | "lobby", stateType: number, cb: (...payload: any[]) => void) => {
     this.emitter.on(action + "-" + stateType, cb);
   };
 
-  offState = (action: "player" | "lobby", stateType: number, cb: () => void) => {
+  offState = (action: "player" | "lobby", stateType: number, cb: (...payload: any[]) => void) => {
     this.emitter.off(action + "-" + stateType, cb);
   };
 
