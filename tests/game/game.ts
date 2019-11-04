@@ -24,7 +24,7 @@ export interface IPlayerState {
   state: number;
 }
 
-const createPlayerState = (): IPlayerState => ({ state: PlayerState.alive });
+const createPlayerState = (): IPlayerState => ({ state: PlayerState.dead });
 const createLobbyState = (): ILobbyState => ({ state: LobbyState.test, count: 0 });
 
 const statePlugin = new StatePlugin<ILobbyState, IPlayerState>(createLobbyState, createPlayerState);
@@ -53,13 +53,22 @@ export class TestLobby extends Lobby {
           this.command(player, "test.command.success", { randomId });
         },
         "state.set": (player, { randomId }) => {
-          this.plugins.state.getLobbyState().data.state = LobbyState.game;
-          this.plugins.state.getPlayerState(player).data.state = PlayerState.alive;
+          const { router } = this.plugins;
+          router.setState(PlayerState.alive, player);
+          // this.plugins.state.getLobbyState().data.state = LobbyState.game;
+          // this.plugins.state.getPlayerState(player).data.state = PlayerState.alive;
           this.command(player, "state.set", { randomId });
         }
       }
     }
   };
+
+  onInit() {
+    const { router } = this.plugins;
+    router.onState("player", PlayerState.dead, () => {
+      console.log("player live!");
+    });
+  }
 
   plugins = {
     router: new RouterPlugin(this.schema, statePlugin),

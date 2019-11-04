@@ -61,13 +61,7 @@ export class StatePlugin<L, P> implements ILobbyPlugin {
   private lobbyState: SyncState<L> = new SyncState<any>({});
   private playerState: Map<string, SyncState<P>> = new Map();
 
-  private createLobbyState: () => L = () => ({} as L);
-  private createPlayerState: () => P = () => ({} as P);
-
-  constructor(createLobbyState: () => L, createPlayerState: () => P) {
-    this.createLobbyState = createLobbyState;
-    this.createPlayerState = createPlayerState;
-  }
+  constructor(private createLobbyState: () => L = () => ({} as L), private createPlayerState: () => P = () => ({} as P)) {}
 
   getLobbyState = () => {
     return this.lobbyState;
