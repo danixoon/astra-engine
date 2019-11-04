@@ -7,4 +7,4 @@ export * from "./socket";
 export * from "./plugins/timer";
 export * from "./plugins/state";
 export * from "./plugins/command";
-export * from "./plugins/rooter";
+export * from "./plugins/router";
