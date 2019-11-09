@@ -17,12 +17,13 @@ type RooterPluginState = { state: number };
 export class RouterPlugin<L extends RooterPluginState, P extends RooterPluginState> implements ILobbyPlugin {
   private emitter = new EventEmitter();
   static ANY_STATE = Number.MAX_SAFE_INTEGER;
-  constructor(private schema: RouterPluginSchema<L, P>, private statePlugin: StatePlugin<L, P>) {}
+  constructor(private schema: RouterPluginSchema<L, P>, private getStatePlugin: () => StatePlugin<L, P>) {}
 
   setState = (stateType: number, player: Player | null, ...payload: any[]) => {
     let stateObject: SyncState<L | P>;
-    if (player) stateObject = this.statePlugin.getPlayerState(player);
-    else stateObject = this.statePlugin.getLobbyState();
+    const statePlugin = this.getStatePlugin();
+    if (player) stateObject = statePlugin.getPlayerState(player);
+    else stateObject = statePlugin.getLobbyState();
 
     stateObject.data.state = stateType;
     this.emitter.emit((player ? "player-" : "lobby-") + stateType, ...[player, ...payload]);
@@ -45,12 +46,13 @@ export class RouterPlugin<L extends RooterPluginState, P extends RooterPluginSta
         this.emitter.removeAllListeners();
         break;
       case "lobby.command": {
-        const ls = this.statePlugin.getLobbyState();
+        const statePlugin = this.getStatePlugin();
+        const ls = statePlugin.getLobbyState();
 
         for (let l in this.schema) {
           if (Number(l) & ls.data.state) {
             for (let p in this.schema[l]) {
-              const ps = this.statePlugin.getPlayerState(player);
+              const ps = statePlugin.getPlayerState(player);
               if (Number(p) & ps.data.state) {
                 const exec = this.schema[l][p][action];
                 if (exec) exec(player, payload, ps, ls);

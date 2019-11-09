@@ -27,10 +27,6 @@ export interface IPlayerState {
 const createPlayerState = (): IPlayerState => ({ state: PlayerState.dead });
 const createLobbyState = (): ILobbyState => ({ state: LobbyState.test, count: 0 });
 
-const statePlugin = new StatePlugin<ILobbyState, IPlayerState>(createLobbyState, createPlayerState);
-const timerPlugin = new TimerPlugin();
-const commandPlugin = new CommandPlugin();
-
 export class TestLobby extends Lobby {
   schema: RouterPluginSchema<ILobbyState, IPlayerState> = {
     [LobbyState.game]: {
@@ -70,11 +66,11 @@ export class TestLobby extends Lobby {
     });
   }
 
-  plugins = {
-    router: new RouterPlugin(this.schema, statePlugin),
-    timer: timerPlugin,
-    command: commandPlugin,
-    state: statePlugin
+  plugins: any = {
+    router: new RouterPlugin(this.schema, () => this.plugins.state),
+    timer: new TimerPlugin(),
+    command: new CommandPlugin(),
+    state: new StatePlugin<ILobbyState, IPlayerState>(createLobbyState, createPlayerState)
   };
   maxPlayers = 2;
 }
